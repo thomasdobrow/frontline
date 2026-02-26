@@ -50,8 +50,8 @@ describe('Initial board state', () => {
     game = createGame();
     game.placeInitialUnit('medium', 1, 2, 1);
     game.placeInitialUnit('medium', 2, 1, 1);
-    game.placeInitialUnit('medium', 12, 13, 2);
-    game.placeInitialUnit('medium', 13, 12, 2);
+    game.placeInitialUnit('medium', 9, 10, 2);
+    game.placeInitialUnit('medium', 10, 9, 2);
     game.startTurn();
     const { units } = game.getState();
     assert.equal(Object.keys(units).length, 4);

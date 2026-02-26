@@ -178,8 +178,8 @@ body {
 /* ── Board ── */
 .board {
   display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  grid-template-rows: repeat(15, 1fr);
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(12, 1fr);
   gap: 1px;
   width: min(640px, 64vw);
   aspect-ratio: 1;

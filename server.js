@@ -20,10 +20,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 const rooms = new Map();
 
 const STARTING_UNITS = [
-  { type: 'medium', row: 1,  col: 2,  player: 1 },
-  { type: 'medium', row: 2,  col: 1,  player: 1 },
-  { type: 'medium', row: 12, col: 13, player: 2 },
-  { type: 'medium', row: 13, col: 12, player: 2 },
+  { type: 'medium', row: 1, col: 2, player: 1 },
+  { type: 'medium', row: 2, col: 1, player: 1 },
+  { type: 'medium', row: 9, col: 10, player: 2 },
+  { type: 'medium', row: 10, col: 9, player: 2 },
 ];
 
 function createRoom() {
