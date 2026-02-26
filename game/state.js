@@ -63,7 +63,7 @@ function createGame() {
     const { row, col } = unit.position;
     return friendlyUnits(unit.player).some(other =>
       other.id !== unit.id &&
-      manhattan(row, col, other.position.row, other.position.col) === range
+      manhattan(row, col, other.position.row, other.position.col) <= range
     );
   }
 
