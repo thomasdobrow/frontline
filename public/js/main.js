@@ -1,10 +1,13 @@
-// ── Client state ─────────────────────────────────────────
-let active = null;
+// ── Client state ──────────────────────────────────────────
+let active       = null;
 let selectedUnitId = null;
+let myPlayer     = null;  // assigned by server (1 or 2)
+let gameStarted  = false;
+
 let boardState = {
   board: [], units: {}, territoryCounts: {},
   currentPlayer: 1, money: { 1: 0, 2: 0 },
-  unitCosts: { large: 30, medium: 20, small: 10 },
+  unitCosts: { large: 30, medium: 20, small: 10, tower: 20 },
   turn: { actionCount: 0, maxActions: 3, movedUnitIds: [], placedUnitIds: [] },
 };
 
@@ -18,15 +21,16 @@ const BEATS = {
 };
 const canCapture = (at, dt) => (BEATS[at] || []).includes(dt);
 
-function hasMoved(id)   { return boardState.turn.movedUnitIds?.includes(id); }
-function hasPlaced(id)  { return boardState.turn.placedUnitIds?.includes(id); }
-function actionsLeft()  { return boardState.turn.maxActions - boardState.turn.actionCount; }
+function hasMoved(id)  { return boardState.turn.movedUnitIds?.includes(id); }
+function hasPlaced(id) { return boardState.turn.placedUnitIds?.includes(id); }
+function actionsLeft() { return boardState.turn.maxActions - boardState.turn.actionCount; }
+function isMyTurn()    { return myPlayer === boardState.currentPlayer; }
 
 function validMoveTargets(unitId) {
   if (hasMoved(unitId)) return new Set();
   const unit = boardState.units[unitId];
   if (!unit) return new Set();
-  if (unit.type === 'tower') return new Set(); // towers cannot move
+  if (unit.type === 'tower') return new Set();
   const { row, col } = unit.position;
   const targets = new Set();
 
@@ -46,49 +50,75 @@ function validMoveTargets(unitId) {
   return targets;
 }
 
-// ── API ──────────────────────────────────────────────────
-async function fetchState() {
-  const res = await fetch('/api/state');
-  boardState = await res.json();
+// ── Socket setup ──────────────────────────────────────────
+const roomId = window.location.pathname.split('/').pop();
+const socket = io();
+
+socket.on('connect', () => {
+  socket.emit('join-room', roomId);
+});
+
+socket.on('player-assigned', (num) => {
+  myPlayer = num;
+  // Update overlay code/link now that we have roomId
+  document.getElementById('overlay-code').textContent = roomId;
+});
+
+socket.on('waiting', () => {
+  showOverlay(`Waiting for opponent…`, 'Share this link or code with your opponent', true);
+});
+
+socket.on('game-started', () => {
+  gameStarted = true;
+  hideOverlay();
+});
+
+socket.on('state-update', (state) => {
+  boardState = state;
+  renderBoard();
+});
+
+socket.on('action-error', (msg) => {
+  console.warn('Action error:', msg);
+  // Flash the board briefly to indicate failure
+  const boardEl = document.getElementById('board');
+  boardEl.classList.add('error-flash');
+  setTimeout(() => boardEl.classList.remove('error-flash'), 300);
+});
+
+socket.on('opponent-disconnected', () => {
+  gameStarted = false;
+  showOverlay('Opponent disconnected', 'Waiting for them to reconnect…', false);
+});
+
+socket.on('room-error', (msg) => {
+  showOverlay('Room error', msg, false);
+  document.getElementById('overlay-box')?.insertAdjacentHTML(
+    'beforeend',
+    '<a class="overlay-home-link" href="/">← Back to lobby</a>'
+  );
+});
+
+// ── Overlay helpers ───────────────────────────────────────
+function showOverlay(title, body, showCode) {
+  document.getElementById('overlay-title').textContent = title;
+  document.getElementById('overlay-body').textContent  = body;
+  document.getElementById('overlay-code').textContent  = roomId;
+  document.getElementById('copy-btn').style.display    = showCode ? '' : 'none';
+  document.getElementById('overlay').classList.add('visible');
 }
 
-async function apiPlaceUnit(player, type, row, col) {
-  const res = await fetch('/api/units', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ player, type, row, col }),
+function hideOverlay() {
+  document.getElementById('overlay').classList.remove('visible');
+}
+
+document.getElementById('copy-btn').addEventListener('click', () => {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
   });
-  return res.json();
-}
-
-async function apiMoveUnit(id, row, col) {
-  const res = await fetch(`/api/units/${id}/move`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ row, col }),
-  });
-  return res.json();
-}
-
-async function apiUndoMove(id) {
-  const res = await fetch(`/api/units/${id}/undo-move`, { method: 'POST' });
-  return res.json();
-}
-
-async function apiUndoPlacement(id) {
-  const res = await fetch(`/api/units/${id}/undo-placement`, { method: 'POST' });
-  return res.json();
-}
-
-async function apiSubmitTurn() {
-  const res = await fetch('/api/turn/submit', { method: 'POST' });
-  boardState = await res.json();
-}
-
-async function apiRestartTurn() {
-  const res = await fetch('/api/turn/restart', { method: 'POST' });
-  boardState = await res.json();
-}
+});
 
 // ── Board rendering ───────────────────────────────────────
 function renderBoard() {
@@ -105,9 +135,9 @@ function renderBoard() {
 
       const cell = document.createElement('div');
       cell.className = 'cell';
-      if (territory)                        cell.classList.add(`territory-${territory}`);
+      if (territory)                          cell.classList.add(`territory-${territory}`);
       if (unitId && unitId === selectedUnitId) cell.classList.add('selected');
-      if (targets.has(`${row},${col}`))     cell.classList.add('move-target');
+      if (targets.has(`${row},${col}`))       cell.classList.add('move-target');
       cell.dataset.row = row;
       cell.dataset.col = col;
 
@@ -115,33 +145,25 @@ function renderBoard() {
         const unit   = boardState.units[unitId];
         const marker = document.createElement('div');
         marker.className = `unit-marker ${unit.type} player-${unit.player}`;
-        if (hasMoved(unitId))   marker.classList.add('moved');
-        if (hasPlaced(unitId))  marker.classList.add('placed');
+        if (hasMoved(unitId))  marker.classList.add('moved');
+        if (hasPlaced(unitId)) marker.classList.add('placed');
         cell.appendChild(marker);
 
-        const isCurrentPlayerUnit = unit.player === boardState.currentPlayer;
+        const isMyUnit = unit.player === myPlayer && isMyTurn();
 
-        // Double-click on a moved unit → undo the move
-        if (hasMoved(unitId) && isCurrentPlayerUnit) {
-          cell.addEventListener('dblclick', async (e) => {
+        if (hasMoved(unitId) && isMyUnit) {
+          cell.addEventListener('dblclick', (e) => {
             e.stopPropagation();
-            const result = await apiUndoMove(unitId);
-            if (result.error) { console.warn('Undo move failed:', result.error); return; }
-            boardState = result;
             selectedUnitId = null;
-            renderBoard();
+            socket.emit('undo-move', { unitId });
           });
         }
 
-        // Double-click on a placed unit → undo the placement
-        if (hasPlaced(unitId) && isCurrentPlayerUnit) {
-          cell.addEventListener('dblclick', async (e) => {
+        if (hasPlaced(unitId) && isMyUnit) {
+          cell.addEventListener('dblclick', (e) => {
             e.stopPropagation();
-            const result = await apiUndoPlacement(unitId);
-            if (result.error) { console.warn('Undo placement failed:', result.error); return; }
-            boardState = result;
             selectedUnitId = null;
-            renderBoard();
+            socket.emit('undo-placement', { unitId });
           });
         }
       }
@@ -177,9 +199,11 @@ function renderHUD() {
   document.querySelectorAll('.unit-btn').forEach(btn => {
     const btnPlayer = parseInt(btn.dataset.player);
     const btnType   = btn.dataset.type;
+    const notMe     = btnPlayer !== myPlayer;
     const offTurn   = btnPlayer !== cp;
     const noFunds   = !offTurn && (mon[cp] ?? 0) < (costs?.[btnType] ?? 0);
-    const disabled  = offTurn || noFunds;
+    const noActions = !offTurn && actionsLeft() <= 0;
+    const disabled  = notMe || offTurn || noFunds || noActions;
     btn.classList.toggle('off-turn', disabled);
     if (disabled && btn.classList.contains('active')) {
       btn.classList.remove('active');
@@ -189,19 +213,18 @@ function renderHUD() {
 }
 
 // ── Cell click ────────────────────────────────────────────
-async function onCellClick(e) {
+function onCellClick(e) {
+  if (!gameStarted || !isMyTurn()) return;
+
   const row    = parseInt(e.currentTarget.dataset.row);
   const col    = parseInt(e.currentTarget.dataset.col);
   const { unitId } = boardState.board[row][col];
 
   // Mode 1: placement button active
   if (active) {
-    if (actionsLeft() <= 0) { console.warn('No actions remaining'); return; }
-    const result = await apiPlaceUnit(active.player, active.type, row, col);
-    if (result.error) { console.warn('Place failed:', result.error); return; }
+    if (actionsLeft() <= 0) return;
+    socket.emit('place-unit', { type: active.type, row, col });
     clearActive();
-    await fetchState();
-    renderBoard();
     return;
   }
 
@@ -222,12 +245,9 @@ async function onCellClick(e) {
         selectedUnitId = unitId;
         renderBoard();
       } else if (targets.has(`${row},${col}`)) {
-        if (actionsLeft() <= 0) { console.warn('No actions remaining'); return; }
-        const result = await apiMoveUnit(selectedUnitId, row, col);
-        if (result.error) { console.warn('Capture failed:', result.error); return; }
+        if (actionsLeft() <= 0) return;
+        socket.emit('move-unit', { unitId: selectedUnitId, row, col });
         selectedUnitId = null;
-        await fetchState();
-        renderBoard();
       } else {
         selectedUnitId = null;
         renderBoard();
@@ -240,26 +260,20 @@ async function onCellClick(e) {
       renderBoard();
       return;
     }
-    if (actionsLeft() <= 0) { console.warn('No actions remaining'); return; }
-    const result = await apiMoveUnit(selectedUnitId, row, col);
-    if (result.error) { console.warn('Move failed:', result.error); return; }
+    if (actionsLeft() <= 0) return;
+    socket.emit('move-unit', { unitId: selectedUnitId, row, col });
     selectedUnitId = null;
-    await fetchState();
-    renderBoard();
     return;
   }
 
-  // Mode 3: nothing selected — select a current-player unit
+  // Mode 3: nothing selected — select one of MY units
   if (unitId) {
     const unit = boardState.units[unitId];
-    if (unit.player === boardState.currentPlayer) {
+    if (unit.player === myPlayer && isMyTurn()) {
       selectedUnitId = unitId;
       renderBoard();
     }
-    return;
   }
-
-  console.log(`Cell clicked: row=${row}, col=${col}`);
 }
 
 // ── Button activation ─────────────────────────────────────
@@ -289,22 +303,19 @@ function initButtons() {
     });
   });
 
-  document.getElementById('submit-btn').addEventListener('click', async () => {
+  document.getElementById('submit-btn').addEventListener('click', () => {
+    if (!isMyTurn()) return;
     clearActive(); selectedUnitId = null;
-    await apiSubmitTurn(); renderBoard();
+    socket.emit('submit-turn');
   });
 
-  document.getElementById('restart-btn').addEventListener('click', async () => {
+  document.getElementById('restart-btn').addEventListener('click', () => {
+    if (!isMyTurn()) return;
     clearActive(); selectedUnitId = null;
-    await apiRestartTurn(); renderBoard();
+    socket.emit('restart-turn');
   });
 }
 
 // ── Init ──────────────────────────────────────────────────
-async function init() {
-  initButtons();
-  await fetchState();
-  renderBoard();
-}
-
-init();
+initButtons();
+showOverlay('Connecting…', '', false);

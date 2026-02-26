@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontline</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="lobby-body">
+  <div class="lobby">
+    <h1 class="banner-title lobby-title">FRONTLINE</h1>
+    <p class="lobby-subtitle">Turn-based strategy</p>
+
+    <button class="lobby-btn" id="create-btn">Create New Game</button>
+
+    <div class="lobby-divider"><span>or join existing</span></div>
+
+    <div class="lobby-join">
+      <input class="lobby-input" id="room-input" placeholder="Game code" maxlength="8" autocomplete="off" spellcheck="false" />
+      <button class="lobby-btn lobby-btn-secondary" id="join-btn">Join</button>
+    </div>
+
+    <p class="lobby-error" id="lobby-error"></p>
+  </div>
+
+  <script>
+    const createBtn  = document.getElementById('create-btn');
+    const joinBtn    = document.getElementById('join-btn');
+    const roomInput  = document.getElementById('room-input');
+    const errorEl    = document.getElementById('lobby-error');
+
+    createBtn.addEventListener('click', async () => {
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating…';
+      try {
+        const res  = await fetch('/api/rooms', { method: 'POST' });
+        const { roomId } = await res.json();
+        window.location.href = `/game/${roomId}`;
+      } catch {
+        errorEl.textContent = 'Could not create game. Try again.';
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create New Game';
+      }
+    });
+
+    function joinGame() {
+      const code = roomInput.value.trim();
+      if (!code) { errorEl.textContent = 'Enter a game code first.'; return; }
+      window.location.href = `/game/${code}`;
+    }
+
+    joinBtn.addEventListener('click', joinGame);
+    roomInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
+  </script>
+</body>
+</html>
