@@ -1,0 +1,13 @@
+{
+  "name": "frontline",
+  "version": "0.1.0",
+  "description": "Frontline - web-based strategy game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/state.test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
