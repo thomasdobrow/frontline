@@ -301,14 +301,14 @@ describe('Turn management', () => {
     assert.ok(game.getState().money[2] > moneyBefore);
   });
 
-  it('income formula: $200 + territory + towers', () => {
+  it('income formula: $200 + floor(territory/5) + 2*towers', () => {
     game = createGame();
     game.placeInitialUnit('medium', 5, 5, 1);
     game.placeInitialUnit('medium', 5, 7, 1); // distance 2 → territory activates
     const { territoryCounts } = game.getState();
     const t = territoryCounts[1] || 0;
     const towers = 0; // no towers placed
-    const expectedIncome = 200 + t + towers;
+    const expectedIncome = 200 + Math.floor(t / 5) + 2 * towers;
     game.startTurn();
     assert.equal(game.getState().money[1], expectedIncome);
   });

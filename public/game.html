@@ -34,17 +34,17 @@
     <aside class="sidebar">
       <div class="sidebar-section">
         <p class="sidebar-label player-1-label">Player 1</p>
-        <button class="unit-btn" data-player="1" data-type="large">Large <span class="unit-cost">$30</span></button>
-        <button class="unit-btn" data-player="1" data-type="medium">Medium <span class="unit-cost">$20</span></button>
-        <button class="unit-btn" data-player="1" data-type="small">Small <span class="unit-cost">$10</span></button>
-        <button class="unit-btn" data-player="1" data-type="tower">Tower <span class="unit-cost">$20</span></button>
+        <button class="unit-btn" data-player="1" data-type="large">Large <span class="unit-cost" id="cost-1-large">$300</span></button>
+        <button class="unit-btn" data-player="1" data-type="medium">Medium <span class="unit-cost" id="cost-1-medium">$200</span></button>
+        <button class="unit-btn" data-player="1" data-type="small">Small <span class="unit-cost" id="cost-1-small">$100</span></button>
+        <button class="unit-btn" data-player="1" data-type="tower">Tower <span class="unit-cost" id="cost-1-tower">$200</span></button>
       </div>
       <div class="sidebar-section">
         <p class="sidebar-label player-2-label">Player 2</p>
-        <button class="unit-btn" data-player="2" data-type="large">Large <span class="unit-cost">$30</span></button>
-        <button class="unit-btn" data-player="2" data-type="medium">Medium <span class="unit-cost">$20</span></button>
-        <button class="unit-btn" data-player="2" data-type="small">Small <span class="unit-cost">$10</span></button>
-        <button class="unit-btn" data-player="2" data-type="tower">Tower <span class="unit-cost">$20</span></button>
+        <button class="unit-btn" data-player="2" data-type="large">Large <span class="unit-cost" id="cost-2-large">$300</span></button>
+        <button class="unit-btn" data-player="2" data-type="medium">Medium <span class="unit-cost" id="cost-2-medium">$200</span></button>
+        <button class="unit-btn" data-player="2" data-type="small">Small <span class="unit-cost" id="cost-2-small">$100</span></button>
+        <button class="unit-btn" data-player="2" data-type="tower">Tower <span class="unit-cost" id="cost-2-tower">$200</span></button>
       </div>
     </aside>
 
@@ -65,7 +65,9 @@
             <span class="stats-item-label">Territory</span>
             <span class="stats-item-value stats-territory" id="territory-1">0</span>
             <span class="income-preview" id="income-preview-1"></span>
+            <span class="territory-delta" id="territory-delta-1"></span>
           </div>
+          <div class="income-breakdown" id="income-breakdown-1"></div>
         </div>
       </div>
 
@@ -83,7 +85,9 @@
             <span class="stats-item-label">Territory</span>
             <span class="stats-item-value stats-territory" id="territory-2">0</span>
             <span class="income-preview" id="income-preview-2"></span>
+            <span class="territory-delta" id="territory-delta-2"></span>
           </div>
+          <div class="income-breakdown" id="income-breakdown-2"></div>
         </div>
       </div>
     </aside>

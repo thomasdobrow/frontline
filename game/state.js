@@ -88,7 +88,8 @@ function createGame() {
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const claimants = [...contrib[r][c]];
-        state.board[r][c].territory = claimants.length === 1 ? claimants[0] : null;
+        state.board[r][c].territory  = claimants.length === 1 ? claimants[0] : null;
+        state.board[r][c].contested  = claimants.length > 1;
       }
     }
   }
@@ -123,13 +124,16 @@ function createGame() {
   }
 
   function nextIncomeFor(player) {
-    const territory = territoryCounts()[player] || 0;
-    const towers = Object.values(state.units).filter(u => u.player === player && u.type === 'tower').length;
-    return 200 + territory + towers;
+    const territory  = territoryCounts()[player] || 0;
+    const towerCount = Object.values(state.units).filter(u => u.player === player && u.type === 'tower').length;
+    const base       = 200;
+    const terrBonus  = Math.floor(territory / 5);
+    const towerBonus = 2 * towerCount;
+    return { total: base + terrBonus + towerBonus, base, terrBonus, towerBonus };
   }
 
   function collectIncome(player) {
-    money[player] = (money[player] || 0) + nextIncomeFor(player);
+    money[player] = (money[player] || 0) + nextIncomeFor(player).total;
   }
 
   function startTurn() {

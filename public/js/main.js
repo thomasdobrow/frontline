@@ -140,13 +140,14 @@ function renderBoard() {
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      const { unitId, territory } = boardState.board[row][col];
+      const { unitId, territory, contested } = boardState.board[row][col];
 
       const cell = document.createElement('div');
       cell.className = 'cell';
-      if (territory)                          cell.classList.add(`territory-${territory}`);
+      if (territory)                           cell.classList.add(`territory-${territory}`);
+      else if (contested)                      cell.classList.add('territory-contested');
       if (unitId && unitId === selectedUnitId) cell.classList.add('selected');
-      if (targets.has(`${row},${col}`))       cell.classList.add('move-target');
+      if (targets.has(`${row},${col}`))        cell.classList.add('move-target');
       cell.dataset.row = row;
       cell.dataset.col = col;
 
@@ -199,14 +200,49 @@ function renderHUD() {
 
   document.getElementById('action-count').textContent = `${actionCount} / ${maxActions}`;
 
-  document.getElementById('money-1').textContent        = `$${mon[1] ?? 0}`;
-  document.getElementById('money-2').textContent        = `$${mon[2] ?? 0}`;
-  document.getElementById('territory-1').textContent    = counts[1] ?? 0;
-  document.getElementById('territory-2').textContent    = counts[2] ?? 0;
-  document.getElementById('income-preview-1').textContent = ni[1] != null ? `(+$${ni[1]})` : '';
-  document.getElementById('income-preview-2').textContent = ni[2] != null ? `(+$${ni[2]})` : '';
+  document.getElementById('money-1').textContent     = `$${mon[1] ?? 0}`;
+  document.getElementById('money-2').textContent     = `$${mon[2] ?? 0}`;
+  document.getElementById('territory-1').textContent = counts[1] ?? 0;
+  document.getElementById('territory-2').textContent = counts[2] ?? 0;
+
+  // Territory delta vs opponent
+  const t1 = counts[1] ?? 0;
+  const t2 = counts[2] ?? 0;
+  const deltaEl1 = document.getElementById('territory-delta-1');
+  const deltaEl2 = document.getElementById('territory-delta-2');
+  if (deltaEl1 && deltaEl2) {
+    const diff = t1 - t2;
+    deltaEl1.textContent  = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '';
+    deltaEl1.className    = `territory-delta ${diff > 0 ? 'delta-pos-1' : diff < 0 ? 'delta-neg-1' : ''}`;
+    deltaEl2.textContent  = diff < 0 ? `+${-diff}` : diff > 0 ? `${-diff}` : '';
+    deltaEl2.className    = `territory-delta ${diff < 0 ? 'delta-pos-2' : diff > 0 ? 'delta-neg-2' : ''}`;
+  }
+
+  // Income preview + breakdown
+  [1, 2].forEach(p => {
+    const inc = ni[p];
+    document.getElementById(`income-preview-${p}`).textContent =
+      inc != null ? `(+$${inc.total})` : '';
+    const bdEl = document.getElementById(`income-breakdown-${p}`);
+    if (bdEl) {
+      bdEl.textContent = inc != null
+        ? `$200 base + $${inc.terrBonus} territory + $${inc.towerBonus} towers`
+        : '';
+    }
+  });
+
   document.getElementById('stats-row-1').classList.toggle('active-turn', cp === 1);
   document.getElementById('stats-row-2').classList.toggle('active-turn', cp === 2);
+
+  // Update button cost labels dynamically from server costs
+  if (costs) {
+    [1, 2].forEach(p => {
+      ['large', 'medium', 'small', 'tower'].forEach(t => {
+        const el = document.getElementById(`cost-${p}-${t}`);
+        if (el) el.textContent = `$${costs[t]}`;
+      });
+    });
+  }
 
   document.querySelectorAll('.unit-btn').forEach(btn => {
     const btnPlayer = parseInt(btn.dataset.player);

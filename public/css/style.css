@@ -17,9 +17,11 @@
   --p1-color:    #5b8fd4;
   --p1-tint:     rgba(50, 110, 220, 0.52);
   --p1-tint-h:   rgba(50, 110, 220, 0.68);
+  --p1-rgb:      50, 110, 220;
   --p2-color:    #d45b5b;
   --p2-tint:     rgba(210, 55, 55, 0.52);
   --p2-tint-h:   rgba(210, 55, 55, 0.68);
+  --p2-rgb:      210, 55, 55;
 }
 
 body {
@@ -200,6 +202,24 @@ body {
 .cell.territory-2  { background: var(--p2-tint); }
 .cell.territory-1:hover { background: var(--p1-tint-h); }
 .cell.territory-2:hover { background: var(--p2-tint-h); }
+.cell.territory-contested {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(var(--p1-rgb), 0.18) 0px,
+    rgba(var(--p1-rgb), 0.18) 4px,
+    rgba(var(--p2-rgb), 0.18) 4px,
+    rgba(var(--p2-rgb), 0.18) 8px
+  );
+}
+.cell.territory-contested:hover {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(var(--p1-rgb), 0.28) 0px,
+    rgba(var(--p1-rgb), 0.28) 4px,
+    rgba(var(--p2-rgb), 0.28) 4px,
+    rgba(var(--p2-rgb), 0.28) 8px
+  );
+}
 
 .cell.selected {
   outline: 2px solid var(--accent);
@@ -360,6 +380,25 @@ body {
   opacity: 0.65;
   letter-spacing: 0.03em;
 }
+
+.income-breakdown {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  opacity: 0.7;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+.territory-delta {
+  font-size: 0.6rem;
+  font-weight: 600;
+  margin-left: 4px;
+  letter-spacing: 0.02em;
+}
+.delta-pos-1 { color: var(--p1-color); }
+.delta-neg-1 { color: var(--p2-color); }
+.delta-pos-2 { color: var(--p2-color); }
+.delta-neg-2 { color: var(--p1-color); }
 
 /* ── Lobby ───────────────────────────────────────────────── */
 .lobby-body {
