@@ -60,6 +60,15 @@ socket.on('connect', () => {
 
 socket.on('player-assigned', (num) => {
   myPlayer = num;
+
+  // Mark which player we are in the stats panel
+  const statsBlock = document.getElementById(`stats-row-${num}`);
+  statsBlock.classList.add('my-player');
+  const badge = document.createElement('span');
+  badge.className = 'you-badge';
+  badge.textContent = 'you';
+  statsBlock.querySelector('.stats-player-label').appendChild(badge);
+
   // Update overlay code/link now that we have roomId
   document.getElementById('overlay-code').textContent = roomId;
 });

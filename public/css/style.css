@@ -178,8 +178,8 @@ body {
 /* ── Board ── */
 .board {
   display: grid;
-  grid-template-columns: repeat(20, 1fr);
-  grid-template-rows: repeat(20, 1fr);
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
   gap: 1px;
   width: min(640px, 64vw);
   aspect-ratio: 1;
@@ -227,13 +227,35 @@ body {
 .unit-marker.player-1 { background: var(--p1-color); }
 .unit-marker.player-2 { background: var(--p2-color); }
 
-.unit-marker.large  { width: 70%; aspect-ratio: 1; }
-.unit-marker.medium { width: 50%; aspect-ratio: 1; }
-.unit-marker.small  { width: 30%; aspect-ratio: 1; }
+/*
+  Shape legend:
+    large  → hexagon  (heavy frontline)
+    medium → circle   (standard)
+    small  → diamond  (light scout)
+    tower  → square   (immovable fortification)
+*/
+
+.unit-marker.large {
+  width: 70%;
+  aspect-ratio: 1;
+  clip-path: polygon(25% 6.7%, 75% 6.7%, 100% 50%, 75% 93.3%, 25% 93.3%, 0% 50%);
+}
+
+.unit-marker.medium {
+  width: 50%;
+  aspect-ratio: 1;
+  /* keeps border-radius: 50% */
+}
+
+.unit-marker.small {
+  width: 34%;
+  aspect-ratio: 1;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
 
 /* Tower: square marker — cannot move */
 .unit-marker.tower {
-  width: 44%;
+  width: 46%;
   aspect-ratio: 1;
   border-radius: 3px;
 }
@@ -244,9 +266,10 @@ body {
   filter: saturate(0.4);
 }
 
-/* Gold ring: unit was placed this turn (double-click to undo) */
+/* Gold glow: unit was placed this turn (double-click to undo).
+   Using drop-shadow so it follows the clip-path outline. */
 .unit-marker.placed {
-  box-shadow: 0 0 0 2px var(--accent);
+  filter: drop-shadow(0 0 3px var(--accent));
   opacity: 0.85;
 }
 
@@ -266,6 +289,19 @@ body {
 
 #stats-row-1.active-turn { border-color: var(--p1-color); }
 #stats-row-2.active-turn { border-color: var(--p2-color); }
+
+/* ── "You" player indicator ── */
+#stats-row-1.my-player { border-left: 3px solid var(--p1-color); }
+#stats-row-2.my-player { border-left: 3px solid var(--p2-color); }
+
+.you-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-left: 0.3rem;
+}
 
 .stats-header {
   display: flex;

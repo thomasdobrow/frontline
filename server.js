@@ -22,8 +22,8 @@ const rooms = new Map();
 const STARTING_UNITS = [
   { type: 'medium', row: 1,  col: 2,  player: 1 },
   { type: 'medium', row: 2,  col: 1,  player: 1 },
-  { type: 'medium', row: 17, col: 18, player: 2 },
-  { type: 'medium', row: 18, col: 17, player: 2 },
+  { type: 'medium', row: 12, col: 13, player: 2 },
+  { type: 'medium', row: 13, col: 12, player: 2 },
 ];
 
 function createRoom() {
