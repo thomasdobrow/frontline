@@ -351,8 +351,15 @@ body {
   line-height: 1;
 }
 
-.stats-money    { color: var(--accent); }
+.stats-money     { color: var(--accent); }
 .stats-territory { color: var(--text); }
+
+.income-preview {
+  font-size: 0.6rem;
+  color: var(--accent);
+  opacity: 0.65;
+  letter-spacing: 0.03em;
+}
 
 /* ── Lobby ───────────────────────────────────────────────── */
 .lobby-body {

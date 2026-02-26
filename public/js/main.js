@@ -186,11 +186,12 @@ function renderBoard() {
 }
 
 function renderHUD() {
-  const cp     = boardState.currentPlayer;
-  const counts = boardState.territoryCounts;
-  const mon    = boardState.money;
-  const costs  = boardState.unitCosts;
-  const { actionCount, maxActions } = boardState.turn;
+  const cp       = boardState.currentPlayer;
+  const counts   = boardState.territoryCounts;
+  const mon      = boardState.money;
+  const costs    = boardState.unitCosts;
+  const ni       = boardState.nextIncome ?? {};
+  const { actionCount, maxActions, hasMovedAny } = boardState.turn;
 
   const indicator = document.getElementById('turn-indicator');
   indicator.textContent = `Player ${cp}'s Turn`;
@@ -198,10 +199,12 @@ function renderHUD() {
 
   document.getElementById('action-count').textContent = `${actionCount} / ${maxActions}`;
 
-  document.getElementById('money-1').textContent     = `$${mon[1] ?? 0}`;
-  document.getElementById('money-2').textContent     = `$${mon[2] ?? 0}`;
-  document.getElementById('territory-1').textContent = counts[1] ?? 0;
-  document.getElementById('territory-2').textContent = counts[2] ?? 0;
+  document.getElementById('money-1').textContent        = `$${mon[1] ?? 0}`;
+  document.getElementById('money-2').textContent        = `$${mon[2] ?? 0}`;
+  document.getElementById('territory-1').textContent    = counts[1] ?? 0;
+  document.getElementById('territory-2').textContent    = counts[2] ?? 0;
+  document.getElementById('income-preview-1').textContent = ni[1] != null ? `(+$${ni[1]})` : '';
+  document.getElementById('income-preview-2').textContent = ni[2] != null ? `(+$${ni[2]})` : '';
   document.getElementById('stats-row-1').classList.toggle('active-turn', cp === 1);
   document.getElementById('stats-row-2').classList.toggle('active-turn', cp === 2);
 
@@ -212,7 +215,8 @@ function renderHUD() {
     const offTurn   = btnPlayer !== cp;
     const noFunds   = !offTurn && (mon[cp] ?? 0) < (costs?.[btnType] ?? 0);
     const noActions = !offTurn && actionsLeft() <= 0;
-    const disabled  = notMe || offTurn || noFunds || noActions;
+    const postMove  = !offTurn && hasMovedAny; // placement locked after first move
+    const disabled  = notMe || offTurn || noFunds || noActions || postMove;
     btn.classList.toggle('off-turn', disabled);
     if (disabled && btn.classList.contains('active')) {
       btn.classList.remove('active');

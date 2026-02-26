@@ -11,7 +11,7 @@ const UNIT_CONFIG = {
   tower:  { range: 2 }, // immovable; territory like medium; beaten by small & medium
 };
 
-const UNIT_COSTS = { large: 30, medium: 20, small: 10, tower: 20 };
+const UNIT_COSTS = { large: 300, medium: 200, small: 100, tower: 200 };
 
 // Capture hierarchy — each attacker type lists the types it can destroy
 const BEATS = {
@@ -59,6 +59,7 @@ function createGame() {
   // ── Territory ─────────────────────────────────────────────────────────────
 
   function unitContributesTerritory(unit) {
+    if (unit.type === 'tower') return true; // towers always contribute
     const { range } = UNIT_CONFIG[unit.type];
     const { row, col } = unit.position;
     return friendlyUnits(unit.player).some(other =>
@@ -121,9 +122,14 @@ function createGame() {
     money       = { ...snapshot.money };
   }
 
-  function collectIncome(player) {
+  function nextIncomeFor(player) {
     const territory = territoryCounts()[player] || 0;
-    money[player] = (money[player] || 0) + 20 + Math.floor(territory / 10);
+    const towers = Object.values(state.units).filter(u => u.player === player && u.type === 'tower').length;
+    return 200 + territory + towers;
+  }
+
+  function collectIncome(player) {
+    money[player] = (money[player] || 0) + nextIncomeFor(player);
   }
 
   function startTurn() {
@@ -154,6 +160,7 @@ function createGame() {
 
   function validatePlacement(type, row, col, player) {
     if (player !== currentPlayer)       return 'Not your turn';
+    if (turnMoves.size > 0)             return 'Cannot place units after moving';
     if (turnActionCount >= MAX_ACTIONS)  return 'No actions remaining this turn';
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE)
                                          return 'Position out of bounds';
@@ -295,11 +302,13 @@ function createGame() {
       currentPlayer,
       money,
       unitCosts: UNIT_COSTS,
+      nextIncome: { 1: nextIncomeFor(1), 2: nextIncomeFor(2) },
       turn: {
         actionCount:   turnActionCount,
         maxActions:    MAX_ACTIONS,
         movedUnitIds:  [...turnMoves.keys()],
         placedUnitIds: [...turnPlacements],
+        hasMovedAny:   turnMoves.size > 0,
       },
     };
   }
