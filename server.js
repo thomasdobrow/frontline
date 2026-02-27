@@ -11,13 +11,26 @@ const io         = new Server(httpServer);
 const PORT       = process.env.PORT || 3737;
 
 // ── Logger ────────────────────────────────────────────────────────────────
+//
+// All output goes to stderr, which is unbuffered in Node.js.
+// stdout is line-buffered when piped (i.e. always on Render.com), so if the
+// process crashes, any unflushed stdout is silently lost.  stderr is always
+// flushed immediately, so crash logs reliably appear in Render's Application
+// Logs panel regardless of how the process dies.
 
 function ts() {
   return new Date().toISOString();
 }
 
+function formatArg(a) {
+  if (a instanceof Error) return `${a.message}\n${a.stack}`;
+  if (typeof a === 'object' && a !== null) return JSON.stringify(a);
+  return String(a);
+}
+
 function log(level, ...args) {
-  console.log(`[${ts()}] [${level}]`, ...args);
+  const line = `[${ts()}] [${level}] ${args.map(formatArg).join(' ')}\n`;
+  process.stderr.write(line);
 }
 
 const logger = {
@@ -39,12 +52,13 @@ function guard(label, fn) {
 // ── Global uncaught error hooks ───────────────────────────────────────────
 
 process.on('uncaughtException', (err) => {
-  logger.error('uncaughtException — process will exit:', err);
+  // Write directly to stderr in case the logger itself is broken.
+  process.stderr.write(`[${ts()}] [FATAL] uncaughtException: ${err && err.stack || err}\n`);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  logger.error('unhandledRejection — process will exit:', reason);
+  process.stderr.write(`[${ts()}] [FATAL] unhandledRejection: ${reason && reason.stack || reason}\n`);
   process.exit(1);
 });
 
