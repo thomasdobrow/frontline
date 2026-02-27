@@ -204,6 +204,9 @@ function createGame() {
     const targetId = state.board[toRow][toCol].unitId;
     if (targetId) {
       const target = state.units[targetId];
+      // Defensive: board and units map should always agree; if they don't,
+      // treat the cell as occupied-but-unknown rather than crashing.
+      if (!target)                             return 'Target cell is in an inconsistent state — please restart your turn';
       if (target.player === unit.player)       return 'Cannot move into a friendly piece';
       if (target.type === unit.type)           return 'Cannot move into an enemy piece of the same size';
       if (!canCapture(unit.type, target.type)) return 'That piece would be destroyed in that matchup';
@@ -263,9 +266,14 @@ function createGame() {
     const unit = state.units[id];
     const { row: fromRow, col: fromCol } = unit.position;
 
-    const targetId     = state.board[toRow][toCol].unitId;
-    const capturedUnit = targetId
-      ? JSON.parse(JSON.stringify(state.units[targetId]))
+    const targetId   = state.board[toRow][toCol].unitId;
+    const targetUnit = targetId ? state.units[targetId] : null;
+    // validateMove already caught desync; this is a belt-and-suspenders guard.
+    if (targetId && !targetUnit) {
+      return { error: 'Target cell is in an inconsistent state — please restart your turn' };
+    }
+    const capturedUnit = targetUnit
+      ? JSON.parse(JSON.stringify(targetUnit))
       : null;
 
     if (targetId) delete state.units[targetId];

@@ -39,13 +39,14 @@ const logger = {
   error: (...a) => log('ERROR', ...a),
 };
 
-// Wrap any function so uncaught errors are logged before rethrowing.
+// Wrap a function so errors are logged.  Does NOT rethrow — callers that want
+// the server to die on error should call process.exit themselves.
 function guard(label, fn) {
   try {
     return fn();
   } catch (err) {
-    logger.error(`Unhandled exception in [${label}]:`, err);
-    throw err;
+    logger.error(`Exception in [${label}]:`, err);
+    // Do not rethrow: a bug in one handler should not kill the whole server.
   }
 }
 
@@ -180,24 +181,29 @@ io.on('connection', (socket) => {
   }
 
   function act(eventName, fn) {
-    guard(`act:${eventName} socketId=${socket.id}`, () => {
-      const room = getRoom();
-      if (!room || !room.started) {
-        logger.warn(`act:${eventName} — game not started  socketId=${socket.id}`);
-        socket.emit('action-error', 'Game not started');
-        return;
-      }
+    const room = getRoom();
+    if (!room || !room.started) {
+      logger.warn(`act:${eventName} — game not started  socketId=${socket.id}`);
+      socket.emit('action-error', 'Game not started');
+      return;
+    }
+    try {
       logger.info(`act:${eventName}  player=${socket.data.player}  room=${socket.data.roomId}`);
       const result = fn(room.game);
       if (result?.error) {
-        logger.warn(`act:${eventName} → error="${result.error}"  player=${socket.data.player}`);
+        logger.warn(`act:${eventName} → rejected="${result.error}"  player=${socket.data.player}`);
         socket.emit('action-error', result.error);
         return;
       }
       const st = room.game.getState();
       logger.info(`act:${eventName} → ok  currentPlayer=${st.currentPlayer}  actions=${st.turn.actionCount}/${st.turn.maxActions}  money=${JSON.stringify(st.money)}`);
       io.to(socket.data.roomId).emit('state-update', st);
-    });
+    } catch (err) {
+      // Log the full exception but do NOT crash the server — one bad move
+      // should never bring down the game for both players.
+      logger.error(`Exception in act:${eventName}  player=${socket.data.player}  room=${socket.data.roomId}:`, err);
+      socket.emit('action-error', `Server error in ${eventName}: ${err.message}`);
+    }
   }
 
   // ── game actions ──────────────────────────────────────────────────────────

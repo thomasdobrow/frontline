@@ -33,6 +33,36 @@ body {
   flex-direction: column;
 }
 
+/* ── Error banner ── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1.5rem;
+  background: rgba(200, 100, 30, 0.15);
+  border-bottom: 1px solid rgba(200, 100, 30, 0.5);
+  color: #e8935a;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.error-banner.hidden { display: none; }
+
+.error-banner-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  opacity: 0.65;
+  flex-shrink: 0;
+  padding: 0 0.2rem;
+}
+
+.error-banner-dismiss:hover { opacity: 1; }
+
 /* ── Banner ── */
 .banner {
   display: flex;

@@ -89,10 +89,15 @@ socket.on('state-update', (state) => {
 
 socket.on('action-error', (msg) => {
   console.warn('Action error:', msg);
-  // Flash the board briefly to indicate failure
-  const boardEl = document.getElementById('board');
-  boardEl.classList.add('error-flash');
-  setTimeout(() => boardEl.classList.remove('error-flash'), 300);
+  if (msg && msg.startsWith('Server error')) {
+    document.getElementById('error-banner-text').textContent =
+      'Unexpected error — please restart your turn and continue.';
+    document.getElementById('error-banner').classList.remove('hidden');
+  } else {
+    const boardEl = document.getElementById('board');
+    boardEl.classList.add('error-flash');
+    setTimeout(() => boardEl.classList.remove('error-flash'), 300);
+  }
 });
 
 socket.on('opponent-disconnected', () => {
@@ -364,7 +369,12 @@ function initButtons() {
   document.getElementById('restart-btn').addEventListener('click', () => {
     if (!isMyTurn()) return;
     clearActive(); selectedUnitId = null;
+    document.getElementById('error-banner').classList.add('hidden');
     socket.emit('restart-turn');
+  });
+
+  document.getElementById('error-banner-dismiss').addEventListener('click', () => {
+    document.getElementById('error-banner').classList.add('hidden');
   });
 }
 
