@@ -215,10 +215,10 @@ function renderHUD() {
   const deltaEl2 = document.getElementById('territory-delta-2');
   if (deltaEl1 && deltaEl2) {
     const diff = t1 - t2;
-    deltaEl1.textContent  = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '';
-    deltaEl1.className    = `territory-delta ${diff > 0 ? 'delta-pos-1' : diff < 0 ? 'delta-neg-1' : ''}`;
-    deltaEl2.textContent  = diff < 0 ? `+${-diff}` : diff > 0 ? `${-diff}` : '';
-    deltaEl2.className    = `territory-delta ${diff < 0 ? 'delta-pos-2' : diff > 0 ? 'delta-neg-2' : ''}`;
+    deltaEl1.textContent = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '0';
+    deltaEl1.className   = `territory-delta ${diff > 0 ? 'delta-pos-1' : diff < 0 ? 'delta-neg-1' : 'delta-zero'}`;
+    deltaEl2.textContent = diff < 0 ? `+${-diff}` : diff > 0 ? `${-diff}` : '0';
+    deltaEl2.className   = `territory-delta ${diff < 0 ? 'delta-pos-2' : diff > 0 ? 'delta-neg-2' : 'delta-zero'}`;
   }
 
   // Income preview + breakdown
@@ -228,8 +228,8 @@ function renderHUD() {
       inc != null ? `(+$${inc.total})` : '';
     const bdEl = document.getElementById(`income-breakdown-${p}`);
     if (bdEl) {
-      bdEl.textContent = inc != null
-        ? `$200 base + $${inc.terrBonus} territory + $${inc.towerBonus} towers`
+      bdEl.innerHTML = inc != null
+        ? `$${inc.base} base +<br>$${inc.terrBonus} territory +<br>$${inc.towerBonus} towers`
         : '';
     }
   });

@@ -386,6 +386,8 @@ body {
   opacity: 0.7;
   margin-top: 2px;
   letter-spacing: 0.02em;
+  line-height: 1.6;
+  white-space: normal;
 }
 
 .territory-delta {
@@ -398,6 +400,7 @@ body {
 .delta-neg-1 { color: var(--p2-color); }
 .delta-pos-2 { color: var(--p2-color); }
 .delta-neg-2 { color: var(--p1-color); }
+.delta-zero  { color: var(--text-dim); }
 
 /* ── Lobby ───────────────────────────────────────────────── */
 .lobby-body {

@@ -220,6 +220,17 @@ describe('Unit movement', () => {
     assert.ok(result.error);
     assert.match(result.error, /friendly/i);
   });
+
+  it('cannot move a unit placed this same turn', () => {
+    setupWithTerritory();
+    const { board } = game.getState();
+    const { r, c } = findTerritoryCell(board, 1);
+    const { unit } = game.addUnit('small', r, c, 1);
+    // Try to move the just-placed unit
+    const result = game.moveUnit(unit.id, r, c + 1);
+    assert.ok(result.error);
+    assert.match(result.error, /placed this turn/i);
+  });
 });
 
 // ── Capture rules ─────────────────────────────────────────
@@ -313,14 +324,14 @@ describe('Turn management', () => {
     assert.ok(game.getState().money[1] > moneyBefore, 'P1 money should increase after submit');
   });
 
-  it('income formula: 200 + floor(territory/5)*10 + towers*5', () => {
+  it('income formula: 200 + territory*2 + towers*5', () => {
     game = createGame();
     game.placeInitialUnit('medium', 4, 4, 1);
     game.placeInitialUnit('medium', 4, 6, 1); // distance 2 → territory activates
     const { territoryCounts } = game.getState();
     const t = territoryCounts[1] || 0;
-    const towers = 0; // no towers placed
-    const expectedIncome = 200 + Math.floor(t / 5) * 10 + towers * 5;
+    const towers = 0;
+    const expectedIncome = 200 + t * 2 + towers * 5;
     game.startTurn();
     const moneyBefore = game.getState().money[1]; // $100 starting
     game.submitTurn(); // P1 collects income

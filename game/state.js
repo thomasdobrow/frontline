@@ -28,7 +28,8 @@ function createGame() {
 
   let nextUnitId    = 1;
   let currentPlayer = 1;
-  let money         = { 1: 100, 2: 100 };
+  // P2 gets +$25 for going second.
+  let money         = { 1: 100, 2: 125 };
 
   const state = {
     board: Array.from({ length: BOARD_SIZE }, () =>
@@ -58,13 +59,18 @@ function createGame() {
 
   // ── Territory ─────────────────────────────────────────────────────────────
 
+  // A unit activates its territory projection when it is within distance 2 of
+  // any other friendly unit or building.  The distance-2 threshold is fixed
+  // for all unit types; the RANGE of the projected territory still comes from
+  // UNIT_CONFIG (1 / 2 / 3 depending on type).
+  const TERRITORY_ACTIVATION_DIST = 2;
+
   function unitContributesTerritory(unit) {
-    if (unit.type === 'tower') return true; // towers always contribute
-    const { range } = UNIT_CONFIG[unit.type];
+    if (unit.type === 'tower') return true; // towers always project
     const { row, col } = unit.position;
     return friendlyUnits(unit.player).some(other =>
       other.id !== unit.id &&
-      manhattan(row, col, other.position.row, other.position.col) <= range
+      manhattan(row, col, other.position.row, other.position.col) <= TERRITORY_ACTIVATION_DIST
     );
   }
 
@@ -127,7 +133,7 @@ function createGame() {
     const territory  = territoryCounts()[player] || 0;
     const towerCount = Object.values(state.units).filter(u => u.player === player && u.type === 'tower').length;
     const base       = 200;
-    const terrBonus  = Math.floor(territory / 5) * 10;
+    const terrBonus  = territory * 2;
     const towerBonus = towerCount * 5;
     return { total: base + terrBonus + towerBonus, base, terrBonus, towerBonus };
   }
@@ -186,6 +192,7 @@ function createGame() {
     if (unit.type === 'tower')          return 'Towers cannot move';
     if (unit.player !== currentPlayer)  return 'Not your turn';
     if (turnActionCount >= MAX_ACTIONS) return 'No actions remaining this turn';
+    if (turnPlacements.has(id))         return 'Units placed this turn cannot move until next turn';
     if (turnMoves.has(id))              return 'This unit has already moved this turn';
     if (toRow < 0 || toRow >= BOARD_SIZE || toCol < 0 || toCol >= BOARD_SIZE)
                                         return 'Position out of bounds';
