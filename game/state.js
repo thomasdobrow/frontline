@@ -11,7 +11,7 @@ const UNIT_CONFIG = {
   tower:  { range: 2 }, // immovable; territory like medium; beaten by small & medium
 };
 
-const UNIT_COSTS = { large: 325, medium: 200, small: 75, tower: 200 };
+const UNIT_COSTS = { large: 200, medium: 125, small: 40, tower: 100 };
 
 // Capture hierarchy — each attacker type lists the types it can destroy
 const BEATS = {
@@ -29,7 +29,7 @@ function createGame() {
   let nextUnitId    = 1;
   let currentPlayer = 1;
   // P2 gets +$25 for going second.
-  let money         = { 1: 100, 2: 125 };
+  let money         = { 1: 0, 2: 25 };
 
   const state = {
     board: Array.from({ length: BOARD_SIZE }, () =>
@@ -132,9 +132,9 @@ function createGame() {
   function nextIncomeFor(player) {
     const territory  = territoryCounts()[player] || 0;
     const towerCount = Object.values(state.units).filter(u => u.player === player && u.type === 'tower').length;
-    const base       = 200;
-    const terrBonus  = territory * 2;
-    const towerBonus = towerCount * 5;
+    const base       = 50;
+    const terrBonus  = territory;       // $1 per territory cell
+    const towerBonus = towerCount * 3;
     return { total: base + terrBonus + towerBonus, base, terrBonus, towerBonus };
   }
 
