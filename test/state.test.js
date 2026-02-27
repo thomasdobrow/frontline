@@ -51,11 +51,12 @@ describe('Initial board state', () => {
   });
 
   it('default board starts with 4 units placed', () => {
+    // Mirrors server.js STARTING_UNITS: P2 = 180° rotation of P1 positions.
     game = createGame();
-    game.placeInitialUnit('medium', 2, 3, 1);
     game.placeInitialUnit('medium', 3, 2, 1);
-    game.placeInitialUnit('medium', BOARD_SIZE - 3, BOARD_SIZE - 2, 2);
-    game.placeInitialUnit('medium', BOARD_SIZE - 2, BOARD_SIZE - 3, 2);
+    game.placeInitialUnit('medium', 2, 3, 1);
+    game.placeInitialUnit('medium', BOARD_SIZE - 1 - 3, BOARD_SIZE - 1 - 2, 2);
+    game.placeInitialUnit('medium', BOARD_SIZE - 1 - 2, BOARD_SIZE - 1 - 3, 2);
     game.startTurn();
     const { units } = game.getState();
     assert.equal(Object.keys(units).length, 4);

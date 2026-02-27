@@ -1,6 +1,6 @@
 // ── Constants (module-level, shared across all game instances) ─────────────
 
-const BOARD_SIZE  = 9;
+const BOARD_SIZE  = 10;
 const MAX_ACTIONS = 3;
 const MOVE_RANGE  = 2;
 

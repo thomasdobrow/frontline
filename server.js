@@ -57,14 +57,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = new Map();
 
-const STARTING_UNITS = [
-  { type: 'medium', row: 3,              col: 2,              player: 1 },
-  { type: 'medium', row: 2,              col: 3,              player: 1 },
-  { type: 'medium', row: BOARD_SIZE - 3, col: BOARD_SIZE - 2, player: 2 },
-  { type: 'medium', row: BOARD_SIZE - 2, col: BOARD_SIZE - 3, player: 2 },
+// P1 anchor positions; P2 is the exact 180° rotation: [BOARD_SIZE-1-row, BOARD_SIZE-1-col].
+// This formula is always correct regardless of board size — no manual adjustment needed.
+const P1_START = [
+  { row: 3, col: 2 },
+  { row: 2, col: 3 },
 ];
 
-logger.info(`BOARD_SIZE=${BOARD_SIZE}; P1 starts at [3,2],[2,3]; P2 starts at [${BOARD_SIZE-3},${BOARD_SIZE-2}],[${BOARD_SIZE-2},${BOARD_SIZE-3}]`);
+const STARTING_UNITS = [
+  ...P1_START.map(({ row, col }) => ({ type: 'medium', row, col, player: 1 })),
+  ...P1_START.map(({ row, col }) => ({
+    type: 'medium',
+    row: BOARD_SIZE - 1 - row,
+    col: BOARD_SIZE - 1 - col,
+    player: 2,
+  })),
+];
+
+logger.info(
+  `BOARD_SIZE=${BOARD_SIZE}; ` +
+  `P1 at ${P1_START.map(p => `[${p.row},${p.col}]`).join(',')}; ` +
+  `P2 at ${P1_START.map(p => `[${BOARD_SIZE-1-p.row},${BOARD_SIZE-1-p.col}]`).join(',')}`
+);
 
 function createRoom() {
   const roomId = crypto.randomUUID().slice(0, 8);
