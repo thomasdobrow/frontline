@@ -180,8 +180,7 @@ body {
 /* ── Board ── */
 .board {
   display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  grid-template-rows: repeat(11, 1fr);
+  /* grid-template-columns/rows set dynamically in renderBoard() */
   gap: 1px;
   width: min(640px, 64vw);
   aspect-ratio: 1;

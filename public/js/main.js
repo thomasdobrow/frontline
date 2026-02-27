@@ -138,6 +138,9 @@ function renderBoard() {
   const rows    = boardState.board.length;
   const cols    = boardState.board[0]?.length ?? 0;
 
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  boardEl.style.gridTemplateRows    = `repeat(${rows}, 1fr)`;
+
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const { unitId, territory, contested } = boardState.board[row][col];
