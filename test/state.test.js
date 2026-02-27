@@ -6,19 +6,23 @@ const { createGame, BOARD_SIZE, UNIT_COSTS, BEATS } = require('../game/state');
 
 let game;
 
-// Fresh empty board, start player 1's turn (gives $20).
+// Fresh empty board, start player 1's turn.
+// Note: income is collected at END of turn (submitTurn), not here.
 function setup() {
   game = createGame();
   game.startTurn();
 }
 
 // Fresh board with two p1 mediums at [1,2] & [2,1] (distance-2 pair → territory
-// activates), then start the turn so p1 collects income.
+// activates). Cycles through one full round so P1 collects income and has enough
+// money for any unit type (tower costs $200, base income is $200+terrBonus).
 function setupWithTerritory() {
   game = createGame();
   game.placeInitialUnit('medium', 1, 2, 1);
   game.placeInitialUnit('medium', 2, 1, 1);
-  game.startTurn(); // p1 gets $20 + floor(territory/10)
+  game.startTurn();
+  game.submitTurn(); // P1 collects income → P2's turn
+  game.submitTurn(); // P2 collects income → P1's turn (P1 now has $100 + income)
 }
 
 // Return a free cell guaranteed to have the given territory, or throw.
@@ -48,10 +52,10 @@ describe('Initial board state', () => {
 
   it('default board starts with 4 units placed', () => {
     game = createGame();
-    game.placeInitialUnit('medium', 1, 2, 1);
-    game.placeInitialUnit('medium', 2, 1, 1);
-    game.placeInitialUnit('medium', 9, 10, 2);
-    game.placeInitialUnit('medium', 10, 9, 2);
+    game.placeInitialUnit('medium', 2, 3, 1);
+    game.placeInitialUnit('medium', 3, 2, 1);
+    game.placeInitialUnit('medium', BOARD_SIZE - 3, BOARD_SIZE - 2, 2);
+    game.placeInitialUnit('medium', BOARD_SIZE - 2, BOARD_SIZE - 3, 2);
     game.startTurn();
     const { units } = game.getState();
     assert.equal(Object.keys(units).length, 4);
@@ -62,7 +66,8 @@ describe('Initial board state', () => {
 describe('Unit placement', () => {
   it('fails outside own territory', () => {
     setupWithTerritory();
-    const result = game.addUnit('small', 10, 10, 1);
+    // [8,8] is in-bounds for a 9×9 board but far from P1's starting units
+    const result = game.addUnit('small', 8, 8, 1);
     assert.ok(result.error, 'should reject placement outside territory');
     assert.match(result.error, /territory/i);
   });
@@ -89,10 +94,11 @@ describe('Unit placement', () => {
     game = createGame();
     game.placeInitialUnit('medium', 1, 2, 1);
     game.placeInitialUnit('medium', 2, 1, 1);
-    // Don't call startTurn → money stays 0
+    // Don't call startTurn/submitTurn → money stays at $100 starting value.
+    // large costs $325 > $100, so it should be rejected.
     const { board } = game.getState();
     const { r, c } = findTerritoryCell(board, 1);
-    const result = game.addUnit('small', r, c, 1);
+    const result = game.addUnit('large', r, c, 1);
     assert.ok(result.error);
     assert.match(result.error, /money/i);
   });
@@ -106,21 +112,26 @@ describe('Unit placement', () => {
   });
 
   it('blocks placement when actions are exhausted', () => {
-    setupWithTerritory();
-    // Give extra money and territory by adding more units
-    game.placeInitialUnit('medium', 5, 5, 1);
-    game.placeInitialUnit('medium', 5, 7, 1);
+    // Set up P1 with enough territory to earn good income, then cycle a full
+    // turn so P1 has enough money to buy 3 smalls ($75 each = $225 total).
+    game = createGame();
+    game.placeInitialUnit('medium', 1, 2, 1);
+    game.placeInitialUnit('medium', 2, 1, 1);
+    game.placeInitialUnit('medium', 4, 4, 1);
+    game.placeInitialUnit('medium', 4, 6, 1);
     game.startTurn();
-    // Find 3 free p1 territory cells and use them
+    game.submitTurn(); // P1 collects income → P2's turn
+    game.submitTurn(); // P2 collects income → P1's turn again (P1 now has $100 + income)
+    // Find 4 free p1 territory cells
     const cells = [];
     const { board } = game.getState();
-    for (let r = 0; r < board.length && cells.length < 3; r++) {
-      for (let c = 0; c < board[r].length && cells.length < 3; c++) {
+    for (let r = 0; r < board.length && cells.length < 4; r++) {
+      for (let c = 0; c < board[r].length && cells.length < 4; c++) {
         if (board[r][c].territory === 1 && !board[r][c].unitId) cells.push({ r, c });
       }
     }
     cells.slice(0, 3).forEach(({ r, c }) => game.addUnit('small', r, c, 1));
-    // Any further action should be blocked
+    // 4th action should be blocked
     const { board: board2 } = game.getState();
     const extra = findTerritoryCell(board2, 1);
     const result = game.addUnit('small', extra.r, extra.c, 1);
@@ -294,23 +305,25 @@ describe('Turn management', () => {
     assert.equal(game.getState().currentPlayer, 1);
   });
 
-  it('new player collects income on their turn', () => {
+  it('current player collects income at end of their turn (on submit)', () => {
     setup();
-    const moneyBefore = game.getState().money[2];
-    game.submitTurn(); // switches to p2, p2 collects
-    assert.ok(game.getState().money[2] > moneyBefore);
+    const moneyBefore = game.getState().money[1];
+    game.submitTurn(); // P1 submits → P1 collects income → P2's turn
+    assert.ok(game.getState().money[1] > moneyBefore, 'P1 money should increase after submit');
   });
 
-  it('income formula: $200 + floor(territory/5) + 2*towers', () => {
+  it('income formula: 200 + floor(territory/5)*10 + towers*5', () => {
     game = createGame();
-    game.placeInitialUnit('medium', 5, 5, 1);
-    game.placeInitialUnit('medium', 5, 7, 1); // distance 2 → territory activates
+    game.placeInitialUnit('medium', 4, 4, 1);
+    game.placeInitialUnit('medium', 4, 6, 1); // distance 2 → territory activates
     const { territoryCounts } = game.getState();
     const t = territoryCounts[1] || 0;
     const towers = 0; // no towers placed
-    const expectedIncome = 200 + Math.floor(t / 5) + 2 * towers;
+    const expectedIncome = 200 + Math.floor(t / 5) * 10 + towers * 5;
     game.startTurn();
-    assert.equal(game.getState().money[1], expectedIncome);
+    const moneyBefore = game.getState().money[1]; // $100 starting
+    game.submitTurn(); // P1 collects income
+    assert.equal(game.getState().money[1], moneyBefore + expectedIncome);
   });
 
   it('restart restores board to start of turn state', () => {
@@ -384,7 +397,7 @@ describe('Tower rules', () => {
     assert.match(result.error, /destroyed/i);
   });
 
-  it('tower costs $20 to place', () => {
+  it('tower costs UNIT_COSTS.tower to place', () => {
     setupWithTerritory();
     const before = game.getState().money[1];
     const { board } = game.getState();

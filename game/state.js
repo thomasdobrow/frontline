@@ -1,6 +1,6 @@
 // ── Constants (module-level, shared across all game instances) ─────────────
 
-const BOARD_SIZE  = 11;
+const BOARD_SIZE  = 9;
 const MAX_ACTIONS = 3;
 const MOVE_RANGE  = 2;
 
@@ -11,7 +11,7 @@ const UNIT_CONFIG = {
   tower:  { range: 2 }, // immovable; territory like medium; beaten by small & medium
 };
 
-const UNIT_COSTS = { large: 300, medium: 200, small: 100, tower: 200 };
+const UNIT_COSTS = { large: 325, medium: 200, small: 75, tower: 200 };
 
 // Capture hierarchy — each attacker type lists the types it can destroy
 const BEATS = {
@@ -28,7 +28,7 @@ function createGame() {
 
   let nextUnitId    = 1;
   let currentPlayer = 1;
-  let money         = { 1: 0, 2: 0 };
+  let money         = { 1: 100, 2: 100 };
 
   const state = {
     board: Array.from({ length: BOARD_SIZE }, () =>
@@ -88,8 +88,8 @@ function createGame() {
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const claimants = [...contrib[r][c]];
-        state.board[r][c].territory  = claimants.length === 1 ? claimants[0] : null;
-        state.board[r][c].contested  = claimants.length > 1;
+        state.board[r][c].territory = claimants.length === 1 ? claimants[0] : null;
+        state.board[r][c].contested = claimants.length > 1;
       }
     }
   }
@@ -127,8 +127,8 @@ function createGame() {
     const territory  = territoryCounts()[player] || 0;
     const towerCount = Object.values(state.units).filter(u => u.player === player && u.type === 'tower').length;
     const base       = 200;
-    const terrBonus  = Math.floor(territory / 5);
-    const towerBonus = 2 * towerCount;
+    const terrBonus  = Math.floor(territory / 5) * 10;
+    const towerBonus = towerCount * 5;
     return { total: base + terrBonus + towerBonus, base, terrBonus, towerBonus };
   }
 
@@ -137,7 +137,7 @@ function createGame() {
   }
 
   function startTurn() {
-    collectIncome(currentPlayer);
+    // Income is collected at END of turn (in submitTurn), not here.
     turnSnapshot    = snapshotState();
     turnActionCount = 0;
     turnMoves       = new Map();
@@ -155,6 +155,7 @@ function createGame() {
   }
 
   function submitTurn() {
+    collectIncome(currentPlayer); // collect at end of YOUR turn
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     startTurn();
     return { ok: true };

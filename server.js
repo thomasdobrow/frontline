@@ -10,6 +10,44 @@ const httpServer = createServer(app);
 const io         = new Server(httpServer);
 const PORT       = process.env.PORT || 3737;
 
+// ── Logger ────────────────────────────────────────────────────────────────
+
+function ts() {
+  return new Date().toISOString();
+}
+
+function log(level, ...args) {
+  console.log(`[${ts()}] [${level}]`, ...args);
+}
+
+const logger = {
+  info:  (...a) => log('INFO ', ...a),
+  warn:  (...a) => log('WARN ', ...a),
+  error: (...a) => log('ERROR', ...a),
+};
+
+// Wrap any function so uncaught errors are logged before rethrowing.
+function guard(label, fn) {
+  try {
+    return fn();
+  } catch (err) {
+    logger.error(`Unhandled exception in [${label}]:`, err);
+    throw err;
+  }
+}
+
+// ── Global uncaught error hooks ───────────────────────────────────────────
+
+process.on('uncaughtException', (err) => {
+  logger.error('uncaughtException — process will exit:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('unhandledRejection — process will exit:', reason);
+  process.exit(1);
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -22,15 +60,22 @@ const rooms = new Map();
 const STARTING_UNITS = [
   { type: 'medium', row: 3,              col: 2,              player: 1 },
   { type: 'medium', row: 2,              col: 3,              player: 1 },
-  { type: 'medium', row: BOARD_SIZE - 4, col: BOARD_SIZE - 3, player: 2 },
-  { type: 'medium', row: BOARD_SIZE - 3, col: BOARD_SIZE - 4, player: 2 },
+  { type: 'medium', row: BOARD_SIZE - 3, col: BOARD_SIZE - 2, player: 2 },
+  { type: 'medium', row: BOARD_SIZE - 2, col: BOARD_SIZE - 3, player: 2 },
 ];
+
+logger.info(`BOARD_SIZE=${BOARD_SIZE}; P1 starts at [3,2],[2,3]; P2 starts at [${BOARD_SIZE-3},${BOARD_SIZE-2}],[${BOARD_SIZE-2},${BOARD_SIZE-3}]`);
 
 function createRoom() {
   const roomId = crypto.randomUUID().slice(0, 8);
-  const game   = createGame();
-  STARTING_UNITS.forEach(u => game.placeInitialUnit(u.type, u.row, u.col, u.player));
+  logger.info(`Creating room roomId=${roomId}`);
+  const game = createGame();
+  STARTING_UNITS.forEach(u => {
+    logger.info(`  placeInitialUnit type=${u.type} row=${u.row} col=${u.col} player=${u.player}`);
+    game.placeInitialUnit(u.type, u.row, u.col, u.player);
+  });
   rooms.set(roomId, { game, players: new Map(), started: false });
+  logger.info(`Room ${roomId} created. Total rooms: ${rooms.size}`);
   return roomId;
 }
 
@@ -41,48 +86,62 @@ app.get('/', (req, res) => {
 });
 
 app.get('/game/:roomId', (req, res) => {
+  logger.info(`GET /game/${req.params.roomId}`);
   res.sendFile(path.join(__dirname, 'public', 'game.html'));
 });
 
 app.post('/api/rooms', (req, res) => {
-  const roomId = createRoom();
-  res.json({ roomId });
+  guard('POST /api/rooms', () => {
+    const roomId = createRoom();
+    logger.info(`POST /api/rooms → roomId=${roomId}`);
+    res.json({ roomId });
+  });
 });
 
 // ── Socket.io ─────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
+  logger.info(`Socket connected  socketId=${socket.id}`);
 
-  // ── join-room ────────────────────────────────────────────────────────────
+  // ── join-room ─────────────────────────────────────────────────────────────
+
   socket.on('join-room', (roomId) => {
-    const room = rooms.get(roomId);
-    if (!room) {
-      socket.emit('room-error', 'Game not found. Check the code and try again.');
-      return;
-    }
+    guard(`join-room socketId=${socket.id}`, () => {
+      logger.info(`join-room  socketId=${socket.id}  roomId=${roomId}`);
+      const room = rooms.get(roomId);
+      if (!room) {
+        logger.warn(`join-room: room not found roomId=${roomId}`);
+        socket.emit('room-error', 'Game not found. Check the code and try again.');
+        return;
+      }
 
-    const taken = [...room.players.values()];
-    if (taken.length >= 2) {
-      socket.emit('room-error', 'This game is already full.');
-      return;
-    }
+      const taken = [...room.players.values()];
+      if (taken.length >= 2) {
+        logger.warn(`join-room: room full roomId=${roomId}`);
+        socket.emit('room-error', 'This game is already full.');
+        return;
+      }
 
-    const playerNum = taken.includes(1) ? 2 : 1;
-    room.players.set(socket.id, playerNum);
-    socket.data.roomId = roomId;
-    socket.data.player = playerNum;
-    socket.join(roomId);
+      const playerNum = taken.includes(1) ? 2 : 1;
+      room.players.set(socket.id, playerNum);
+      socket.data.roomId = roomId;
+      socket.data.player = playerNum;
+      socket.join(roomId);
+      logger.info(`Player ${playerNum} joined room ${roomId}  socketId=${socket.id}`);
 
-    socket.emit('player-assigned', playerNum);
+      socket.emit('player-assigned', playerNum);
 
-    if (room.players.size === 2 && !room.started) {
-      room.started = true;
-      room.game.startTurn();
-      io.to(roomId).emit('game-started');
-      io.to(roomId).emit('state-update', room.game.getState());
-    } else {
-      socket.emit('waiting');
-    }
+      if (room.players.size === 2 && !room.started) {
+        room.started = true;
+        room.game.startTurn();
+        logger.info(`Game started in room ${roomId}`);
+        io.to(roomId).emit('game-started');
+        io.to(roomId).emit('state-update', room.game.getState());
+      } else {
+        logger.info(`Player ${playerNum} waiting in room ${roomId}`);
+        socket.emit('waiting');
+      }
+    });
   });
 
   // ── helpers ───────────────────────────────────────────────────────────────
@@ -92,36 +151,79 @@ io.on('connection', (socket) => {
     return roomId ? rooms.get(roomId) : null;
   }
 
-  function act(fn) {
-    const room = getRoom();
-    if (!room || !room.started) { socket.emit('action-error', 'Game not started'); return; }
-    const result = fn(room.game);
-    if (result?.error) { socket.emit('action-error', result.error); return; }
-    io.to(socket.data.roomId).emit('state-update', room.game.getState());
+  function act(eventName, fn) {
+    guard(`act:${eventName} socketId=${socket.id}`, () => {
+      const room = getRoom();
+      if (!room || !room.started) {
+        logger.warn(`act:${eventName} — game not started  socketId=${socket.id}`);
+        socket.emit('action-error', 'Game not started');
+        return;
+      }
+      logger.info(`act:${eventName}  player=${socket.data.player}  room=${socket.data.roomId}`);
+      const result = fn(room.game);
+      if (result?.error) {
+        logger.warn(`act:${eventName} → error="${result.error}"  player=${socket.data.player}`);
+        socket.emit('action-error', result.error);
+        return;
+      }
+      const st = room.game.getState();
+      logger.info(`act:${eventName} → ok  currentPlayer=${st.currentPlayer}  actions=${st.turn.actionCount}/${st.turn.maxActions}  money=${JSON.stringify(st.money)}`);
+      io.to(socket.data.roomId).emit('state-update', st);
+    });
   }
 
   // ── game actions ──────────────────────────────────────────────────────────
 
-  socket.on('place-unit',      ({ type, row, col })  => act(g => g.addUnit(type, row, col, socket.data.player)));
-  socket.on('move-unit',       ({ unitId, row, col }) => act(g => g.moveUnit(unitId, row, col)));
-  socket.on('undo-move',       ({ unitId })           => act(g => g.undoUnitMove(unitId)));
-  socket.on('undo-placement',  ({ unitId })           => act(g => g.undoUnitPlacement(unitId)));
-  socket.on('submit-turn',     ()                     => act(g => g.submitTurn()));
-  socket.on('restart-turn',    ()                     => act(g => g.restartTurn()));
+  socket.on('place-unit', ({ type, row, col }) => {
+    logger.info(`place-unit  player=${socket.data.player}  type=${type}  row=${row}  col=${col}`);
+    act('place-unit', g => g.addUnit(type, row, col, socket.data.player));
+  });
+
+  socket.on('move-unit', ({ unitId, row, col }) => {
+    logger.info(`move-unit  player=${socket.data.player}  unitId=${unitId}  to=[${row},${col}]`);
+    act('move-unit', g => g.moveUnit(unitId, row, col));
+  });
+
+  socket.on('undo-move', ({ unitId }) => {
+    logger.info(`undo-move  player=${socket.data.player}  unitId=${unitId}`);
+    act('undo-move', g => g.undoUnitMove(unitId));
+  });
+
+  socket.on('undo-placement', ({ unitId }) => {
+    logger.info(`undo-placement  player=${socket.data.player}  unitId=${unitId}`);
+    act('undo-placement', g => g.undoUnitPlacement(unitId));
+  });
+
+  socket.on('submit-turn', () => {
+    logger.info(`submit-turn  player=${socket.data.player}  room=${socket.data.roomId}`);
+    act('submit-turn', g => g.submitTurn());
+  });
+
+  socket.on('restart-turn', () => {
+    logger.info(`restart-turn  player=${socket.data.player}  room=${socket.data.roomId}`);
+    act('restart-turn', g => g.restartTurn());
+  });
 
   // ── disconnect ────────────────────────────────────────────────────────────
 
-  socket.on('disconnect', () => {
-    const room = getRoom();
-    if (!room) return;
-    room.players.delete(socket.id);
-    io.to(socket.data.roomId).emit('opponent-disconnected');
-    if (room.players.size === 0) rooms.delete(socket.data.roomId);
+  socket.on('disconnect', (reason) => {
+    guard(`disconnect socketId=${socket.id}`, () => {
+      logger.info(`Socket disconnected  socketId=${socket.id}  player=${socket.data.player ?? '?'}  reason=${reason}`);
+      const room = getRoom();
+      if (!room) return;
+      room.players.delete(socket.id);
+      logger.info(`Player removed from room ${socket.data.roomId}. Players remaining: ${room.players.size}`);
+      io.to(socket.data.roomId).emit('opponent-disconnected');
+      if (room.players.size === 0) {
+        rooms.delete(socket.data.roomId);
+        logger.info(`Room ${socket.data.roomId} deleted (empty). Total rooms: ${rooms.size}`);
+      }
+    });
   });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────
 
 httpServer.listen(PORT, () => {
-  console.log(`Frontline running at http://localhost:${PORT}`);
+  logger.info(`Frontline running at http://localhost:${PORT}`);
 });
