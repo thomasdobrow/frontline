@@ -28,8 +28,8 @@ function createGame() {
 
   let nextUnitId    = 1;
   let currentPlayer = 1;
-  // P2 gets +$10 for going second.
-  let money         = { 1: 0, 2: 10 };
+  // P2 gets extra money for going second.
+  let money         = { 1: 100, 2: 120 };
 
   const state = {
     board: Array.from({ length: BOARD_SIZE }, () =>

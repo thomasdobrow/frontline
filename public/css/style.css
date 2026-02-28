@@ -340,8 +340,8 @@ body {
 #stats-row-2.active-turn { border-color: var(--p2-color); }
 
 /* ── "You" player indicator ── */
-#stats-row-1.my-player { border-left: 3px solid var(--p1-color); }
-#stats-row-2.my-player { border-left: 3px solid var(--p2-color); }
+#stats-row-1.my-player { border-left: 5px solid var(--p1-color); }
+#stats-row-2.my-player { border-left: 5px solid var(--p2-color); }
 
 .you-badge {
   font-size: 0.6rem;
