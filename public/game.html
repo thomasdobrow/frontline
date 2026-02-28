@@ -40,17 +40,17 @@
     <aside class="sidebar">
       <div class="sidebar-section">
         <p class="sidebar-label player-1-label">Player 1</p>
-        <button class="unit-btn" data-player="1" data-type="large">Large <span class="unit-cost" id="cost-1-large">$75</span></button>
-        <button class="unit-btn" data-player="1" data-type="medium">Medium <span class="unit-cost" id="cost-1-medium">$75</span></button>
-        <button class="unit-btn" data-player="1" data-type="small">Small <span class="unit-cost" id="cost-1-small">$35</span></button>
-        <button class="unit-btn" data-player="1" data-type="tower">Tower <span class="unit-cost" id="cost-1-tower">$70</span></button>
+        <button class="unit-btn" data-player="1" data-type="large">Large <span class="unit-cost" id="cost-1-large">$100</span></button>
+        <button class="unit-btn" data-player="1" data-type="medium">Medium <span class="unit-cost" id="cost-1-medium">$60</span></button>
+        <button class="unit-btn" data-player="1" data-type="small">Small <span class="unit-cost" id="cost-1-small">$25</span></button>
+        <button class="unit-btn" data-player="1" data-type="tower">Tower <span class="unit-cost" id="cost-1-tower">$50</span></button>
       </div>
       <div class="sidebar-section">
         <p class="sidebar-label player-2-label">Player 2</p>
-        <button class="unit-btn" data-player="2" data-type="large">Large <span class="unit-cost" id="cost-2-large">$75</span></button>
-        <button class="unit-btn" data-player="2" data-type="medium">Medium <span class="unit-cost" id="cost-2-medium">$75</span></button>
-        <button class="unit-btn" data-player="2" data-type="small">Small <span class="unit-cost" id="cost-2-small">$35</span></button>
-        <button class="unit-btn" data-player="2" data-type="tower">Tower <span class="unit-cost" id="cost-2-tower">$70</span></button>
+        <button class="unit-btn" data-player="2" data-type="large">Large <span class="unit-cost" id="cost-2-large">$100</span></button>
+        <button class="unit-btn" data-player="2" data-type="medium">Medium <span class="unit-cost" id="cost-2-medium">$60</span></button>
+        <button class="unit-btn" data-player="2" data-type="small">Small <span class="unit-cost" id="cost-2-small">$25</span></button>
+        <button class="unit-btn" data-player="2" data-type="tower">Tower <span class="unit-cost" id="cost-2-tower">$50</span></button>
       </div>
     </aside>
 
@@ -71,10 +71,22 @@
             <span class="stats-item-label">Territory</span>
             <span class="stats-item-value stats-territory" id="territory-1">0</span>
             <span class="income-preview" id="income-preview-1"></span>
-            <span class="territory-delta" id="territory-delta-1"></span>
           </div>
-          <div class="income-breakdown" id="income-breakdown-1"></div>
+          <div class="stats-item">
+            <span class="stats-item-label">Net Worth</span>
+            <span class="stats-item-value stats-item-value-sm" id="net-worth-1">$0</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-item-label">Grand Total</span>
+            <span class="stats-item-value stats-item-value-sm" id="grand-total-1">$0</span>
+          </div>
         </div>
+        <div class="income-breakdown" id="income-breakdown-1"></div>
+      </div>
+
+      <div class="terr-adv-section">
+        <div class="terr-adv-label">Territory</div>
+        <span class="territory-advantage terr-adv-sm terr-adv-zero" id="territory-advantage">0</span>
       </div>
 
       <div class="stats-block" id="stats-row-2">
@@ -91,10 +103,17 @@
             <span class="stats-item-label">Territory</span>
             <span class="stats-item-value stats-territory" id="territory-2">0</span>
             <span class="income-preview" id="income-preview-2"></span>
-            <span class="territory-delta" id="territory-delta-2"></span>
           </div>
-          <div class="income-breakdown" id="income-breakdown-2"></div>
+          <div class="stats-item">
+            <span class="stats-item-label">Net Worth</span>
+            <span class="stats-item-value stats-item-value-sm" id="net-worth-2">$0</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-item-label">Grand Total</span>
+            <span class="stats-item-value stats-item-value-sm" id="grand-total-2">$0</span>
+          </div>
         </div>
+        <div class="income-breakdown" id="income-breakdown-2"></div>
       </div>
     </aside>
   </main>

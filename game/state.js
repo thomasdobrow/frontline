@@ -11,7 +11,8 @@ const UNIT_CONFIG = {
   tower:  { range: 2 }, // immovable; territory like medium; beaten by small & medium
 };
 
-const UNIT_COSTS = { large: 125, medium: 75, small: 35, tower: 70 };
+const UNIT_COSTS    = { large: 100, medium: 60, small: 25, tower: 50 };
+const STARTING_MONEY = { 1: 60, 2: 70 };
 
 // Capture hierarchy — each attacker type lists the types it can destroy
 const BEATS = {
@@ -28,8 +29,8 @@ function createGame() {
 
   let nextUnitId    = 1;
   let currentPlayer = 1;
-  // P2 gets extra money for going second.
-  let money         = { 1: 100, 2: 120 };
+  let money             = { ...STARTING_MONEY };
+  let totalIncomeEarned = { 1: 0, 2: 0 };
 
   const state = {
     board: Array.from({ length: BOARD_SIZE }, () =>
@@ -115,31 +116,35 @@ function createGame() {
 
   function snapshotState() {
     return {
-      board:      JSON.parse(JSON.stringify(state.board)),
-      units:      JSON.parse(JSON.stringify(state.units)),
+      board:             JSON.parse(JSON.stringify(state.board)),
+      units:             JSON.parse(JSON.stringify(state.units)),
       nextUnitId,
-      money:      { ...money },
+      money:             { ...money },
+      totalIncomeEarned: { ...totalIncomeEarned },
     };
   }
 
   function restoreSnapshot(snapshot) {
-    state.board = snapshot.board;
-    state.units = snapshot.units;
-    nextUnitId  = snapshot.nextUnitId;
-    money       = { ...snapshot.money };
+    state.board       = snapshot.board;
+    state.units       = snapshot.units;
+    nextUnitId        = snapshot.nextUnitId;
+    money             = { ...snapshot.money };
+    totalIncomeEarned = { ...snapshot.totalIncomeEarned };
   }
 
   function nextIncomeFor(player) {
     const territory  = territoryCounts()[player] || 0;
     const towerCount = Object.values(state.units).filter(u => u.player === player && u.type === 'tower').length;
-    const base       = 20;
+    const base       = 10;
     const terrBonus  = territory;       // $1 per territory cell
     const towerBonus = towerCount * 3;
     return { total: base + terrBonus + towerBonus, base, terrBonus, towerBonus };
   }
 
   function collectIncome(player) {
-    money[player] = (money[player] || 0) + nextIncomeFor(player).total;
+    const income = nextIncomeFor(player).total;
+    money[player]             = (money[player]             || 0) + income;
+    totalIncomeEarned[player] = (totalIncomeEarned[player] || 0) + income;
   }
 
   function startTurn() {
@@ -315,6 +320,11 @@ function createGame() {
   // ── Public API ────────────────────────────────────────────────────────────
 
   function getState() {
+    const unitNetWorth = (p) =>
+      Object.values(state.units)
+        .filter(u => u.player === p)
+        .reduce((sum, u) => sum + (UNIT_COSTS[u.type] || 0), 0);
+
     return {
       board: state.board,
       units: state.units,
@@ -323,6 +333,8 @@ function createGame() {
       money,
       unitCosts: UNIT_COSTS,
       nextIncome: { 1: nextIncomeFor(1), 2: nextIncomeFor(2) },
+      netWorth:   { 1: (money[1] || 0) + unitNetWorth(1), 2: (money[2] || 0) + unitNetWorth(2) },
+      grandTotal: { 1: STARTING_MONEY[1] + (totalIncomeEarned[1] || 0), 2: STARTING_MONEY[2] + (totalIncomeEarned[2] || 0) },
       turn: {
         actionCount:   turnActionCount,
         maxActions:    MAX_ACTIONS,

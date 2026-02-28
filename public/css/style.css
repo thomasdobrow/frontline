@@ -378,7 +378,8 @@ body {
 
 .stats-values {
   display: flex;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
 }
 
 .stats-item {
@@ -420,17 +421,42 @@ body {
   white-space: normal;
 }
 
-.territory-delta {
-  font-size: 0.6rem;
-  font-weight: 600;
-  margin-left: 4px;
-  letter-spacing: 0.02em;
+/* ── Secondary stat values (net worth, grand total) ── */
+.stats-item-value-sm {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
 }
-.delta-pos-1 { color: var(--p1-color); }
-.delta-neg-1 { color: var(--p2-color); }
-.delta-pos-2 { color: var(--p2-color); }
-.delta-neg-2 { color: var(--p1-color); }
-.delta-zero  { color: var(--text-dim); }
+
+/* ── Territory advantage (central, between stat blocks) ── */
+.terr-adv-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem 0;
+}
+
+.terr-adv-label {
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.territory-advantage {
+  font-weight: 700;
+  line-height: 1;
+  transition: color 0.15s, font-size 0.15s;
+}
+
+.terr-adv-sm   { font-size: 1rem; }
+.terr-adv-md   { font-size: 1.5rem; }
+.terr-adv-lg   { font-size: 2.1rem; }
+.terr-adv-p1   { color: var(--p1-color); }
+.terr-adv-p2   { color: var(--p2-color); }
+.terr-adv-zero { color: var(--text-dim); }
 
 /* ── Lobby ───────────────────────────────────────────────── */
 .lobby-body {

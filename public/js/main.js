@@ -7,7 +7,9 @@ let gameStarted  = false;
 let boardState = {
   board: [], units: {}, territoryCounts: {},
   currentPlayer: 1, money: { 1: 0, 2: 0 },
-  unitCosts: { large: 125, medium: 75, small: 35, tower: 70 },
+  unitCosts:  { large: 100, medium: 60, small: 25, tower: 50 },
+  netWorth:   { 1: 0, 2: 0 },
+  grandTotal: { 1: 60, 2: 70 },
   turn: { actionCount: 0, maxActions: 3, movedUnitIds: [], placedUnitIds: [] },
 };
 
@@ -213,18 +215,28 @@ function renderHUD() {
   document.getElementById('territory-1').textContent = counts[1] ?? 0;
   document.getElementById('territory-2').textContent = counts[2] ?? 0;
 
-  // Territory delta vs opponent
-  const t1 = counts[1] ?? 0;
-  const t2 = counts[2] ?? 0;
-  const deltaEl1 = document.getElementById('territory-delta-1');
-  const deltaEl2 = document.getElementById('territory-delta-2');
-  if (deltaEl1 && deltaEl2) {
-    const diff = t1 - t2;
-    deltaEl1.textContent = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '0';
-    deltaEl1.className   = `territory-delta ${diff > 0 ? 'delta-pos-1' : diff < 0 ? 'delta-neg-1' : 'delta-zero'}`;
-    deltaEl2.textContent = diff < 0 ? `+${-diff}` : diff > 0 ? `${-diff}` : '0';
-    deltaEl2.className   = `territory-delta ${diff < 0 ? 'delta-pos-2' : diff > 0 ? 'delta-neg-2' : 'delta-zero'}`;
+  // Single central territory advantage display
+  const t1    = counts[1] ?? 0;
+  const t2    = counts[2] ?? 0;
+  const advEl = document.getElementById('territory-advantage');
+  if (advEl) {
+    const diff    = t1 - t2;
+    const absDiff = Math.abs(diff);
+    const sizeClass  = absDiff > 20 ? 'terr-adv-lg' : absDiff > 10 ? 'terr-adv-md' : 'terr-adv-sm';
+    const colorClass = diff > 0 ? 'terr-adv-p1' : diff < 0 ? 'terr-adv-p2' : 'terr-adv-zero';
+    advEl.textContent = diff === 0 ? '0' : `+${absDiff}`;
+    advEl.className   = `territory-advantage ${sizeClass} ${colorClass}`;
   }
+
+  // Net worth and grand total
+  const nw = boardState.netWorth   ?? {};
+  const gt = boardState.grandTotal ?? {};
+  [1, 2].forEach(p => {
+    const nwEl = document.getElementById(`net-worth-${p}`);
+    if (nwEl) nwEl.textContent = `$${nw[p] ?? 0}`;
+    const gtEl = document.getElementById(`grand-total-${p}`);
+    if (gtEl) gtEl.textContent = `$${gt[p] ?? 0}`;
+  });
 
   // Income preview + breakdown
   [1, 2].forEach(p => {
