@@ -7,7 +7,7 @@ let gameStarted  = false;
 let boardState = {
   board: [], units: {}, territoryCounts: {},
   currentPlayer: 1, money: { 1: 0, 2: 0 },
-  unitCosts: { large: 30, medium: 20, small: 10, tower: 20 },
+  unitCosts: { large: 125, medium: 75, small: 35, tower: 70 },
   turn: { actionCount: 0, maxActions: 3, movedUnitIds: [], placedUnitIds: [] },
 };
 
