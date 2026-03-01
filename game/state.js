@@ -1,6 +1,6 @@
 // ── Constants (module-level, shared across all game instances) ─────────────
 
-const BOARD_SIZE  = 10;
+const BOARD_SIZE  = 11;
 const MAX_ACTIONS = 3;
 const MOVE_RANGE  = 2;
 
@@ -13,6 +13,10 @@ const UNIT_CONFIG = {
 
 const UNIT_COSTS    = { large: 100, medium: 60, small: 25, tower: 50 };
 const STARTING_MONEY = { 1: 60, 2: 70 };
+
+// Mountain tiles — units cannot be placed on these; +1 move range if starting there
+const MOUNTAINS = new Set(['3,3', '3,7', '7,3', '7,7']);
+function isMountain(r, c) { return MOUNTAINS.has(`${r},${c}`); }
 
 // Capture hierarchy — each attacker type lists the types it can destroy
 const BEATS = {
@@ -33,8 +37,10 @@ function createGame() {
   let totalIncomeEarned = { 1: 0, 2: 0 };
 
   const state = {
-    board: Array.from({ length: BOARD_SIZE }, () =>
-      Array.from({ length: BOARD_SIZE }, () => ({ unitId: null, territory: null }))
+    board: Array.from({ length: BOARD_SIZE }, (_, r) =>
+      Array.from({ length: BOARD_SIZE }, (_, c) => ({
+        unitId: null, territory: null, mountain: isMountain(r, c),
+      }))
     ),
     units: {},
   };
@@ -43,6 +49,7 @@ function createGame() {
   let turnActionCount = 0;
   let turnMoves       = new Map(); // unitId → { fromRow, fromCol, capturedUnit }
   let turnPlacements  = new Set(); // unitIds placed this turn
+  let turnAttacks     = new Map(); // unitId → { targetId, capturedTarget, attackerHpBefore, targetHpBefore, targetDestroyed, attackerDestroyed }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -56,6 +63,11 @@ function createGame() {
 
   function canCapture(attackerType, defenderType) {
     return (BEATS[attackerType] || []).includes(defenderType);
+  }
+
+  function effectiveMoveRange(unit) {
+    const { row, col } = unit.position;
+    return isMountain(row, col) ? MOVE_RANGE + 1 : MOVE_RANGE;
   }
 
   // ── Territory ─────────────────────────────────────────────────────────────
@@ -97,6 +109,7 @@ function createGame() {
         const claimants = [...contrib[r][c]];
         state.board[r][c].territory = claimants.length === 1 ? claimants[0] : null;
         state.board[r][c].contested = claimants.length > 1;
+        // mountain flag is set at init and never cleared by territory compute
       }
     }
   }
@@ -153,6 +166,7 @@ function createGame() {
     turnActionCount = 0;
     turnMoves       = new Map();
     turnPlacements  = new Set();
+    turnAttacks     = new Map();
   }
 
   function restartTurn() {
@@ -162,6 +176,7 @@ function createGame() {
     turnActionCount = 0;
     turnMoves       = new Map();
     turnPlacements  = new Set();
+    turnAttacks     = new Map();
     return { ok: true };
   }
 
@@ -176,10 +191,12 @@ function createGame() {
 
   function validatePlacement(type, row, col, player) {
     if (player !== currentPlayer)       return 'Not your turn';
-    if (turnMoves.size > 0)             return 'Cannot place units after moving';
+    if (turnMoves.size > 0 || turnAttacks.size > 0)
+                                         return 'Cannot place units after moving';
     if (turnActionCount >= MAX_ACTIONS)  return 'No actions remaining this turn';
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE)
                                          return 'Position out of bounds';
+    if (isMountain(row, col))            return 'Cannot place units on mountains';
     if (state.board[row][col].unitId !== null) return 'Cell already occupied';
 
     const cost = UNIT_COSTS[type];
@@ -199,12 +216,14 @@ function createGame() {
     if (turnActionCount >= MAX_ACTIONS) return 'No actions remaining this turn';
     if (turnPlacements.has(id))         return 'Units placed this turn cannot move until next turn';
     if (turnMoves.has(id))              return 'This unit has already moved this turn';
+    if (turnAttacks.has(id))            return 'This unit has already attacked this turn';
     if (toRow < 0 || toRow >= BOARD_SIZE || toCol < 0 || toCol >= BOARD_SIZE)
                                         return 'Position out of bounds';
 
-    const dist = manhattan(unit.position.row, unit.position.col, toRow, toCol);
-    if (dist === 0)        return 'Already at that position';
-    if (dist > MOVE_RANGE) return `Cannot move more than ${MOVE_RANGE} spaces`;
+    const range = effectiveMoveRange(unit);
+    const dist  = manhattan(unit.position.row, unit.position.col, toRow, toCol);
+    if (dist === 0)      return 'Already at that position';
+    if (dist > range)    return `Cannot move more than ${range} spaces`;
 
     const targetId = state.board[toRow][toCol].unitId;
     if (targetId) {
@@ -213,8 +232,9 @@ function createGame() {
       // treat the cell as occupied-but-unknown rather than crashing.
       if (!target)                             return 'Target cell is in an inconsistent state — please restart your turn';
       if (target.player === unit.player)       return 'Cannot move into a friendly piece';
-      if (target.type === unit.type)           return 'Cannot move into an enemy piece of the same size';
-      if (!canCapture(unit.type, target.type)) return 'That piece would be destroyed in that matchup';
+      // Same type: allowed as a same-type attack (attacker stays)
+      if (target.type !== unit.type && !canCapture(unit.type, target.type))
+                                               return 'That piece would be destroyed in that matchup';
     }
 
     return null;
@@ -225,7 +245,7 @@ function createGame() {
   // Bypass all turn/action/money/territory rules — for initial board setup and tests.
   function placeInitialUnit(type, row, col, player) {
     const id   = `u${nextUnitId++}`;
-    const unit = { id, type, position: { row, col }, player: Number(player) };
+    const unit = { id, type, position: { row, col }, player: Number(player), hp: 2 };
     state.units[id]              = unit;
     state.board[row][col].unitId = id;
     computeTerritory();
@@ -238,7 +258,7 @@ function createGame() {
     if (error) return { error };
 
     const id   = `u${nextUnitId++}`;
-    const unit = { id, type, position: { row, col }, player: p };
+    const unit = { id, type, position: { row, col }, player: p, hp: 2 };
     state.units[id]              = unit;
     state.board[row][col].unitId = id;
     money[p] -= UNIT_COSTS[type];
@@ -277,6 +297,39 @@ function createGame() {
     if (targetId && !targetUnit) {
       return { error: 'Target cell is in an inconsistent state — please restart your turn' };
     }
+
+    // ── Same-type attack: attacker stays, both take 1 damage ──────────────
+    if (targetUnit && targetUnit.player !== unit.player && targetUnit.type === unit.type) {
+      const attackerHpBefore = unit.hp;
+      const targetHpBefore   = targetUnit.hp;
+      const capturedTarget   = JSON.parse(JSON.stringify(targetUnit));
+
+      unit.hp       -= 1;
+      targetUnit.hp -= 1;
+
+      const targetDestroyed   = targetUnit.hp <= 0;
+      const attackerDestroyed = unit.hp <= 0;
+
+      if (targetDestroyed) {
+        state.board[toRow][toCol].unitId = null;
+        delete state.units[targetId];
+      }
+      if (attackerDestroyed) {
+        state.board[fromRow][fromCol].unitId = null;
+        delete state.units[id];
+      }
+
+      turnAttacks.set(id, {
+        targetId, capturedTarget,
+        attackerHpBefore, targetHpBefore,
+        targetDestroyed, attackerDestroyed,
+      });
+      turnActionCount++;
+      computeTerritory();
+      return { ok: true, attack: true };
+    }
+
+    // ── Normal move / outright capture ────────────────────────────────────
     const capturedUnit = targetUnit
       ? JSON.parse(JSON.stringify(targetUnit))
       : null;
@@ -317,6 +370,35 @@ function createGame() {
     return { ok: true };
   }
 
+  function undoUnitAttack(id) {
+    if (!turnAttacks.has(id)) return { error: 'Unit has not attacked this turn' };
+
+    const { targetId, capturedTarget, attackerHpBefore, targetHpBefore,
+            targetDestroyed, attackerDestroyed } = turnAttacks.get(id);
+
+    // If attacker was destroyed they can't be double-clicked — restart-turn handles it
+    if (attackerDestroyed) return { error: 'Attacker was destroyed — use Restart Turn to undo' };
+
+    const unit = state.units[id];
+    if (!unit) return { error: 'Attacker not found — use Restart Turn to undo' };
+
+    // Restore attacker HP
+    unit.hp = attackerHpBefore;
+
+    // Restore target
+    if (targetDestroyed) {
+      state.units[capturedTarget.id] = capturedTarget;
+      state.board[capturedTarget.position.row][capturedTarget.position.col].unitId = capturedTarget.id;
+    } else {
+      state.units[targetId].hp = targetHpBefore;
+    }
+
+    turnAttacks.delete(id);
+    turnActionCount--;
+    computeTerritory();
+    return { ok: true };
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
   function getState() {
@@ -324,6 +406,8 @@ function createGame() {
       Object.values(state.units)
         .filter(u => u.player === p)
         .reduce((sum, u) => sum + (UNIT_COSTS[u.type] || 0), 0);
+
+    const hasActedAny = turnMoves.size > 0 || turnAttacks.size > 0;
 
     return {
       board: state.board,
@@ -336,21 +420,22 @@ function createGame() {
       netWorth:   { 1: (money[1] || 0) + unitNetWorth(1), 2: (money[2] || 0) + unitNetWorth(2) },
       grandTotal: { 1: STARTING_MONEY[1] + (totalIncomeEarned[1] || 0), 2: STARTING_MONEY[2] + (totalIncomeEarned[2] || 0) },
       turn: {
-        actionCount:   turnActionCount,
-        maxActions:    MAX_ACTIONS,
-        movedUnitIds:  [...turnMoves.keys()],
-        placedUnitIds: [...turnPlacements],
-        hasMovedAny:   turnMoves.size > 0,
+        actionCount:    turnActionCount,
+        maxActions:     MAX_ACTIONS,
+        movedUnitIds:   [...turnMoves.keys()],
+        placedUnitIds:  [...turnPlacements],
+        attackedUnitIds: [...turnAttacks.keys()],
+        hasMovedAny:    hasActedAny,
       },
     };
   }
 
   return {
-    getState, addUnit, moveUnit, undoUnitMove, undoUnitPlacement,
+    getState, addUnit, moveUnit, undoUnitMove, undoUnitPlacement, undoUnitAttack,
     restartTurn, submitTurn, placeInitialUnit, startTurn,
   };
 }
 
 // ── Module exports ────────────────────────────────────────────────────────
 
-module.exports = { createGame, BOARD_SIZE, UNIT_COSTS, BEATS };
+module.exports = { createGame, BOARD_SIZE, UNIT_COSTS, BEATS, isMountain };

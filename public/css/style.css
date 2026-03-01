@@ -322,6 +322,14 @@ body {
   opacity: 0.85;
 }
 
+/* Cracked / battle-worn: unit is at 1 HP */
+.unit-marker.damaged {
+  opacity: 0.75;
+  filter: drop-shadow(0 0 4px rgba(220, 80, 50, 0.9)) saturate(0.6);
+  outline: 2px dashed rgba(220, 80, 50, 0.7);
+  outline-offset: 2px;
+}
+
 /* ── Stats panel ── */
 .stats-panel {
   display: flex;
@@ -636,6 +644,29 @@ body {
   margin-top: 0.5rem;
 }
 .overlay-home-link:hover { color: var(--text); }
+
+/* ── Mountain tiles ─────────────────────────────────────── */
+.cell.mountain {
+  background: #2a2820;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(160, 140, 80, 0.08) 0px,
+    rgba(160, 140, 80, 0.08) 3px,
+    transparent 3px,
+    transparent 9px
+  );
+  border-color: #5a5030;
+}
+.cell.mountain:hover {
+  background: #332f24;
+}
+/* Keep mountain styling even when territory-tinted */
+.cell.mountain.territory-1 {
+  background: color-mix(in srgb, var(--p1-tint) 70%, #2a2820 30%);
+}
+.cell.mountain.territory-2 {
+  background: color-mix(in srgb, var(--p2-tint) 70%, #2a2820 30%);
+}
 
 /* ── Board error flash ───────────────────────────────────── */
 @keyframes error-flash {

@@ -75,14 +75,15 @@ const rooms = new Map();
 // P1 anchor positions; P2 is the exact 180° rotation: [BOARD_SIZE-1-row, BOARD_SIZE-1-col].
 // This formula is always correct regardless of board size — no manual adjustment needed.
 const P1_START = [
-  { row: 3, col: 2 },
-  { row: 2, col: 3 },
+  { type: 'medium', row: 1, col: 3 },
+  { type: 'medium', row: 3, col: 1 },
+  { type: 'small',  row: 2, col: 2 },
 ];
 
 const STARTING_UNITS = [
-  ...P1_START.map(({ row, col }) => ({ type: 'medium', row, col, player: 1 })),
-  ...P1_START.map(({ row, col }) => ({
-    type: 'medium',
+  ...P1_START.map(({ type, row, col }) => ({ type, row, col, player: 1 })),
+  ...P1_START.map(({ type, row, col }) => ({
+    type,
     row: BOARD_SIZE - 1 - row,
     col: BOARD_SIZE - 1 - col,
     player: 2,
@@ -91,8 +92,8 @@ const STARTING_UNITS = [
 
 logger.info(
   `BOARD_SIZE=${BOARD_SIZE}; ` +
-  `P1 at ${P1_START.map(p => `[${p.row},${p.col}]`).join(',')}; ` +
-  `P2 at ${P1_START.map(p => `[${BOARD_SIZE-1-p.row},${BOARD_SIZE-1-p.col}]`).join(',')}`
+  `P1 at ${P1_START.map(p => `[${p.row},${p.col}](${p.type})`).join(',')}; ` +
+  `P2 at ${P1_START.map(p => `[${BOARD_SIZE-1-p.row},${BOARD_SIZE-1-p.col}](${p.type})`).join(',')}`
 );
 
 function createRoom() {
@@ -226,6 +227,11 @@ io.on('connection', (socket) => {
   socket.on('undo-placement', ({ unitId }) => {
     logger.info(`undo-placement  player=${socket.data.player}  unitId=${unitId}`);
     act('undo-placement', g => g.undoUnitPlacement(unitId));
+  });
+
+  socket.on('undo-attack', ({ unitId }) => {
+    logger.info(`undo-attack  player=${socket.data.player}  unitId=${unitId}`);
+    act('undo-attack', g => g.undoUnitAttack(unitId));
   });
 
   socket.on('submit-turn', () => {
