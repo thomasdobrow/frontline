@@ -7,17 +7,18 @@ let gameStarted  = false;
 let boardState = {
   board: [], units: {}, territoryCounts: {},
   currentPlayer: 1, money: { 1: 0, 2: 0 },
-  unitCosts:  { large: 100, medium: 60, small: 25, tower: 50 },
-  netWorth:   { 1: 0, 2: 0 },
-  grandTotal: { 1: 60, 2: 70 },
-  turn: { actionCount: 0, maxActions: 3, movedUnitIds: [], placedUnitIds: [], attackedUnitIds: [] },
+  unitCosts: { large: 100, medium: 60, small: 25, tower: 50 },
+  netWorth:  { 1: 0, 2: 0 },
+  turnNumber: 0,
+  turn: { actionCount: 0, maxActions: 3, turnsUntilActionBump: 21, nextMaxActions: 4,
+          movedUnitIds: [], placedUnitIds: [], attackedUnitIds: [] },
 };
 
 // ── Helpers ───────────────────────────────────────────────
 const manhattan = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2);
 const BEATS = {
   small:  ['large', 'tower'],
-  large:  ['medium'],
+  large:  ['medium', 'tower'],
   medium: ['small', 'tower'],
   tower:  [],
 };
@@ -225,13 +226,28 @@ function renderHUD() {
   const mon      = boardState.money;
   const costs    = boardState.unitCosts;
   const ni       = boardState.nextIncome ?? {};
-  const { actionCount, maxActions, hasMovedAny } = boardState.turn;
+  const { actionCount, maxActions, turnsUntilActionBump, nextMaxActions, hasMovedAny } = boardState.turn;
+  const turnNumber = boardState.turnNumber ?? 0;
 
   const indicator = document.getElementById('turn-indicator');
   indicator.textContent = `Player ${cp}'s Turn`;
   indicator.className   = `turn-indicator player-${cp}`;
 
+  const turnCounterEl = document.getElementById('turn-counter');
+  if (turnCounterEl) turnCounterEl.textContent = `Turn ${turnNumber}`;
+
   document.getElementById('action-count').textContent = `${actionCount} / ${maxActions}`;
+
+  const bumpEl = document.getElementById('action-bump');
+  if (bumpEl) {
+    if (turnsUntilActionBump === 1) {
+      bumpEl.textContent = ` · ↑${nextMaxActions} next!`;
+      bumpEl.className = 'action-bump action-bump-soon';
+    } else {
+      bumpEl.textContent = ` · ↑${nextMaxActions} in ${turnsUntilActionBump}`;
+      bumpEl.className = 'action-bump';
+    }
+  }
 
   document.getElementById('money-1').textContent     = `$${mon[1] ?? 0}`;
   document.getElementById('money-2').textContent     = `$${mon[2] ?? 0}`;
@@ -251,14 +267,11 @@ function renderHUD() {
     advEl.className   = `territory-advantage ${sizeClass} ${colorClass}`;
   }
 
-  // Net worth and grand total
-  const nw = boardState.netWorth   ?? {};
-  const gt = boardState.grandTotal ?? {};
+  // Net worth
+  const nw = boardState.netWorth ?? {};
   [1, 2].forEach(p => {
     const nwEl = document.getElementById(`net-worth-${p}`);
     if (nwEl) nwEl.textContent = `$${nw[p] ?? 0}`;
-    const gtEl = document.getElementById(`grand-total-${p}`);
-    if (gtEl) gtEl.textContent = `$${gt[p] ?? 0}`;
   });
 
   // Income preview + breakdown

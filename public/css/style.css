@@ -94,6 +94,26 @@ body {
 .turn-indicator.player-1 { color: var(--p1-color); }
 .turn-indicator.player-2 { color: var(--p2-color); }
 
+/* ── Turn counter ── */
+.turn-counter {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  flex-shrink: 0;
+}
+
+/* ── Action bump countdown ── */
+.action-bump {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+  margin-left: 0.15em;
+}
+
+.action-bump.action-bump-soon {
+  color: var(--accent);
+}
+
 /* ── Turn controls ── */
 .turn-controls {
   display: flex;

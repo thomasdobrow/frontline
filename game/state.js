@@ -1,8 +1,7 @@
 // ── Constants (module-level, shared across all game instances) ─────────────
 
-const BOARD_SIZE  = 11;
-const MAX_ACTIONS = 3;
-const MOVE_RANGE  = 2;
+const BOARD_SIZE = 11;
+const MOVE_RANGE = 2;
 
 const UNIT_CONFIG = {
   large:  { range: 3 },
@@ -21,7 +20,7 @@ function isMountain(r, c) { return MOUNTAINS.has(`${r},${c}`); }
 // Capture hierarchy — each attacker type lists the types it can destroy
 const BEATS = {
   small:  ['large', 'tower'],
-  large:  ['medium'],
+  large:  ['medium', 'tower'],
   medium: ['small', 'tower'],
   tower:  [],
 };
@@ -31,10 +30,10 @@ const BEATS = {
 function createGame() {
   // ── Mutable state (closed over per game instance) ──────────────────────
 
-  let nextUnitId    = 1;
-  let currentPlayer = 1;
-  let money             = { ...STARTING_MONEY };
-  let totalIncomeEarned = { 1: 0, 2: 0 };
+  let nextUnitId      = 1;
+  let currentPlayer   = 1;
+  let globalTurnNumber = 0;
+  let money            = { ...STARTING_MONEY };
 
   const state = {
     board: Array.from({ length: BOARD_SIZE }, (_, r) =>
@@ -63,6 +62,12 @@ function createGame() {
 
   function canCapture(attackerType, defenderType) {
     return (BEATS[attackerType] || []).includes(defenderType);
+  }
+
+  // Actions per turn escalates every 21 global turns: 3 → 4 → 5 → …
+  function currentMaxActions() {
+    if (globalTurnNumber < 1) return 3;
+    return 3 + Math.floor((globalTurnNumber - 1) / 21);
   }
 
   function effectiveMoveRange(unit) {
@@ -129,20 +134,18 @@ function createGame() {
 
   function snapshotState() {
     return {
-      board:             JSON.parse(JSON.stringify(state.board)),
-      units:             JSON.parse(JSON.stringify(state.units)),
+      board:     JSON.parse(JSON.stringify(state.board)),
+      units:     JSON.parse(JSON.stringify(state.units)),
       nextUnitId,
-      money:             { ...money },
-      totalIncomeEarned: { ...totalIncomeEarned },
+      money:     { ...money },
     };
   }
 
   function restoreSnapshot(snapshot) {
-    state.board       = snapshot.board;
-    state.units       = snapshot.units;
-    nextUnitId        = snapshot.nextUnitId;
-    money             = { ...snapshot.money };
-    totalIncomeEarned = { ...snapshot.totalIncomeEarned };
+    state.board = snapshot.board;
+    state.units = snapshot.units;
+    nextUnitId  = snapshot.nextUnitId;
+    money       = { ...snapshot.money };
   }
 
   function nextIncomeFor(player) {
@@ -156,12 +159,12 @@ function createGame() {
 
   function collectIncome(player) {
     const income = nextIncomeFor(player).total;
-    money[player]             = (money[player]             || 0) + income;
-    totalIncomeEarned[player] = (totalIncomeEarned[player] || 0) + income;
+    money[player] = (money[player] || 0) + income;
   }
 
   function startTurn() {
     // Income is collected at END of turn (in submitTurn), not here.
+    globalTurnNumber++;
     turnSnapshot    = snapshotState();
     turnActionCount = 0;
     turnMoves       = new Map();
@@ -193,7 +196,7 @@ function createGame() {
     if (player !== currentPlayer)       return 'Not your turn';
     if (turnMoves.size > 0 || turnAttacks.size > 0)
                                          return 'Cannot place units after moving';
-    if (turnActionCount >= MAX_ACTIONS)  return 'No actions remaining this turn';
+    if (turnActionCount >= currentMaxActions())  return 'No actions remaining this turn';
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE)
                                          return 'Position out of bounds';
     if (isMountain(row, col))            return 'Cannot place units on mountains';
@@ -213,8 +216,8 @@ function createGame() {
     if (!unit)                          return 'Unit not found';
     if (unit.type === 'tower')          return 'Towers cannot move';
     if (unit.player !== currentPlayer)  return 'Not your turn';
-    if (turnActionCount >= MAX_ACTIONS) return 'No actions remaining this turn';
-    if (turnPlacements.has(id))         return 'Units placed this turn cannot move until next turn';
+    if (turnActionCount >= currentMaxActions()) return 'No actions remaining this turn';
+    if (turnPlacements.has(id))                 return 'Units placed this turn cannot move until next turn';
     if (turnMoves.has(id))              return 'This unit has already moved this turn';
     if (turnAttacks.has(id))            return 'This unit has already attacked this turn';
     if (toRow < 0 || toRow >= BOARD_SIZE || toCol < 0 || toCol >= BOARD_SIZE)
@@ -407,6 +410,11 @@ function createGame() {
         .filter(u => u.player === p)
         .reduce((sum, u) => sum + (UNIT_COSTS[u.type] || 0), 0);
 
+    const curMax             = currentMaxActions();
+    const phase              = globalTurnNumber > 0 ? Math.floor((globalTurnNumber - 1) / 21) : 0;
+    const turnsUntilActionBump = globalTurnNumber > 0
+      ? (phase + 1) * 21 + 1 - globalTurnNumber
+      : 21;
     const hasActedAny = turnMoves.size > 0 || turnAttacks.size > 0;
 
     return {
@@ -418,14 +426,16 @@ function createGame() {
       unitCosts: UNIT_COSTS,
       nextIncome: { 1: nextIncomeFor(1), 2: nextIncomeFor(2) },
       netWorth:   { 1: (money[1] || 0) + unitNetWorth(1), 2: (money[2] || 0) + unitNetWorth(2) },
-      grandTotal: { 1: STARTING_MONEY[1] + (totalIncomeEarned[1] || 0), 2: STARTING_MONEY[2] + (totalIncomeEarned[2] || 0) },
+      turnNumber: globalTurnNumber,
       turn: {
-        actionCount:    turnActionCount,
-        maxActions:     MAX_ACTIONS,
-        movedUnitIds:   [...turnMoves.keys()],
-        placedUnitIds:  [...turnPlacements],
-        attackedUnitIds: [...turnAttacks.keys()],
-        hasMovedAny:    hasActedAny,
+        actionCount:         turnActionCount,
+        maxActions:          curMax,
+        turnsUntilActionBump,
+        nextMaxActions:      curMax + 1,
+        movedUnitIds:        [...turnMoves.keys()],
+        placedUnitIds:       [...turnPlacements],
+        attackedUnitIds:     [...turnAttacks.keys()],
+        hasMovedAny:         hasActedAny,
       },
     };
   }

@@ -261,14 +261,16 @@ describe('Capture rules', () => {
     assert.match(result.error, /destroyed/i);
   });
 
-  it('blocks same-size capture', () => {
+  it('same-type attack: both units take 1 HP damage', () => {
     setup();
     const a = game.placeInitialUnit('medium', 5, 5, 1);
-    game.placeInitialUnit('medium', 5, 6, 2);
+    const b = game.placeInitialUnit('medium', 5, 6, 2);
     game.startTurn();
     const result = game.moveUnit(a.id, 5, 6);
-    assert.ok(result.error);
-    assert.match(result.error, /same size/i);
+    assert.ok(!result.error, `unexpected error: ${result.error}`);
+    assert.ok(result.attack, 'should be flagged as an attack');
+    assert.equal(game.getState().units[a.id]?.hp, 1, 'attacker takes 1 damage');
+    assert.equal(game.getState().units[b.id]?.hp, 1, 'defender takes 1 damage');
   });
 });
 
@@ -330,16 +332,16 @@ describe('Turn management', () => {
     assert.ok(game.getState().money[1] > moneyBefore, 'P1 money should increase after submit');
   });
 
-  it('income formula: 50 + territory + towers*3', () => {
+  it('income formula: 10 + territory + towers*3', () => {
     game = createGame();
     game.placeInitialUnit('medium', 4, 4, 1);
     game.placeInitialUnit('medium', 4, 6, 1); // distance 2 → territory activates
     const { territoryCounts } = game.getState();
     const t = territoryCounts[1] || 0;
     const towers = 0;
-    const expectedIncome = 50 + t + towers * 3;
+    const expectedIncome = 10 + t + towers * 3;
     game.startTurn();
-    const moneyBefore = game.getState().money[1]; // $0 starting
+    const moneyBefore = game.getState().money[1]; // $60 starting
     game.submitTurn(); // P1 collects income
     assert.equal(game.getState().money[1], moneyBefore + expectedIncome);
   });
@@ -405,14 +407,14 @@ describe('Tower rules', () => {
     assert.ok(!result.error, `unexpected error: ${result.error}`);
   });
 
-  it('large cannot capture tower', () => {
+  it('large can capture tower', () => {
     setup();
     const large = game.placeInitialUnit('large', 5, 5, 1);
     game.placeInitialUnit('tower', 5, 6, 2);
     game.startTurn();
     const result = game.moveUnit(large.id, 5, 6);
-    assert.ok(result.error);
-    assert.match(result.error, /destroyed/i);
+    assert.ok(!result.error, `unexpected error: ${result.error}`);
+    assert.ok(!game.getState().units[`u2`], 'enemy tower should be captured');
   });
 
   it('tower costs UNIT_COSTS.tower to place', () => {
