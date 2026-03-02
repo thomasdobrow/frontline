@@ -224,6 +224,7 @@ body {
   align-items: center;
   justify-content: center;
   transition: background 0.1s;
+  position: relative;
 }
 
 .cell:hover        { background: var(--cell-hover); }
@@ -322,12 +323,24 @@ body {
   opacity: 0.85;
 }
 
-/* Cracked / battle-worn: unit is at 1 HP */
+/* Cracked / battle-worn: unit is at 1 HP.
+   drop-shadow follows clip-path so it works for all shapes. */
 .unit-marker.damaged {
   opacity: 0.75;
-  filter: drop-shadow(0 0 4px rgba(220, 80, 50, 0.9)) saturate(0.6);
-  outline: 2px dashed rgba(220, 80, 50, 0.7);
-  outline-offset: 2px;
+  filter: drop-shadow(0 0 5px rgba(220, 60, 40, 1)) saturate(0.55);
+}
+
+/* Small corner dot rendered alongside the unit marker in JS */
+.damage-pip {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #dc3820;
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* ── Stats panel ── */
@@ -647,7 +660,7 @@ body {
 
 /* ── Mountain tiles ─────────────────────────────────────── */
 .cell.mountain {
-  background: #2a2820;
+  background-color: #2a2820;
   background-image: repeating-linear-gradient(
     135deg,
     rgba(160, 140, 80, 0.08) 0px,
@@ -658,14 +671,52 @@ body {
   border-color: #5a5030;
 }
 .cell.mountain:hover {
-  background: #332f24;
+  background-color: #332f24; /* only override color; background-image stays */
 }
-/* Keep mountain styling even when territory-tinted */
+
+/* Small ▲ icon in the corner — always visible regardless of territory tint */
+.cell.mountain::before {
+  content: '▲';
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 9px;
+  color: rgba(160, 140, 80, 0.55);
+  pointer-events: none;
+  line-height: 1;
+  z-index: 1;
+}
+
+/* Territory tint layered on top of the mountain stripe texture */
 .cell.mountain.territory-1 {
-  background: color-mix(in srgb, var(--p1-tint) 70%, #2a2820 30%);
+  background-color: #2a2820;
+  background-image:
+    linear-gradient(rgba(50, 110, 220, 0.28), rgba(50, 110, 220, 0.28)),
+    repeating-linear-gradient(135deg,
+      rgba(160, 140, 80, 0.08) 0px, rgba(160, 140, 80, 0.08) 3px,
+      transparent 3px, transparent 9px);
 }
 .cell.mountain.territory-2 {
-  background: color-mix(in srgb, var(--p2-tint) 70%, #2a2820 30%);
+  background-color: #2a2820;
+  background-image:
+    linear-gradient(rgba(210, 55, 55, 0.28), rgba(210, 55, 55, 0.28)),
+    repeating-linear-gradient(135deg,
+      rgba(160, 140, 80, 0.08) 0px, rgba(160, 140, 80, 0.08) 3px,
+      transparent 3px, transparent 9px);
+}
+.cell.mountain.territory-1:hover {
+  background-image:
+    linear-gradient(rgba(50, 110, 220, 0.42), rgba(50, 110, 220, 0.42)),
+    repeating-linear-gradient(135deg,
+      rgba(160, 140, 80, 0.08) 0px, rgba(160, 140, 80, 0.08) 3px,
+      transparent 3px, transparent 9px);
+}
+.cell.mountain.territory-2:hover {
+  background-image:
+    linear-gradient(rgba(210, 55, 55, 0.42), rgba(210, 55, 55, 0.42)),
+    repeating-linear-gradient(135deg,
+      rgba(160, 140, 80, 0.08) 0px, rgba(160, 140, 80, 0.08) 3px,
+      transparent 3px, transparent 9px);
 }
 
 /* ── Board error flash ───────────────────────────────────── */

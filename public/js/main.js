@@ -178,6 +178,11 @@ function renderBoard() {
         if (hasAttacked(unitId)) marker.classList.add('moved'); // dim after attacking
         if (unit.hp === 1)       marker.classList.add('damaged');
         cell.appendChild(marker);
+        if (unit.hp === 1) {
+          const pip = document.createElement('div');
+          pip.className = 'damage-pip';
+          cell.appendChild(pip);
+        }
 
         const isMyUnit = unit.player === myPlayer && isMyTurn();
 
