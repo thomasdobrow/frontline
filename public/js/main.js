@@ -15,14 +15,8 @@ let boardState = {
 };
 
 // ── Helpers ───────────────────────────────────────────────
-const manhattan = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2);
-const BEATS = {
-  small:  ['large', 'tower'],
-  large:  ['medium', 'tower'],
-  medium: ['small', 'tower'],
-  tower:  [],
-};
-const canCapture = (at, dt) => (BEATS[at] || []).includes(dt);
+// BEATS, canCapture, manhattan, validMoveTargets are provided by logic.js,
+// which is loaded via <script> before this file in game.html.
 
 function hasMoved(id)    { return boardState.turn.movedUnitIds?.includes(id); }
 function hasPlaced(id)   { return boardState.turn.placedUnitIds?.includes(id); }
@@ -30,35 +24,6 @@ function hasAttacked(id) { return boardState.turn.attackedUnitIds?.includes(id);
 function actionsLeft()   { return boardState.turn.maxActions - boardState.turn.actionCount; }
 function isMyTurn()      { return myPlayer === boardState.currentPlayer; }
 
-function validMoveTargets(unitId) {
-  if (hasMoved(unitId) || hasAttacked(unitId)) return new Set();
-  const unit = boardState.units[unitId];
-  if (!unit) return new Set();
-  if (unit.type === 'tower') return new Set();
-  const { row, col } = unit.position;
-  // +1 move range if unit starts the turn on a mountain
-  const onMountain = boardState.board[row]?.[col]?.mountain;
-  const range = onMountain ? 3 : 2;
-  const targets = new Set();
-
-  boardState.board.forEach((rowArr, r) =>
-    rowArr.forEach((cell, c) => {
-      const dist = manhattan(row, col, r, c);
-      if (dist === 0 || dist > range) return;
-      if (!cell.unitId) {
-        targets.add(`${r},${c}`);
-      } else {
-        const occ = boardState.units[cell.unitId];
-        if (occ.player !== unit.player) {
-          // Can attack if: normal capture OR same-type (same-type attack)
-          if (canCapture(unit.type, occ.type) || occ.type === unit.type)
-            targets.add(`${r},${c}`);
-        }
-      }
-    })
-  );
-  return targets;
-}
 
 // ── Socket setup ──────────────────────────────────────────
 const roomId = window.location.pathname.split('/').pop();
@@ -149,7 +114,7 @@ function renderBoard() {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
 
-  const targets = selectedUnitId ? validMoveTargets(selectedUnitId) : new Set();
+  const targets = selectedUnitId ? validMoveTargets(selectedUnitId, boardState, boardState.turn) : new Set();
   const rows    = boardState.board.length;
   const cols    = boardState.board[0]?.length ?? 0;
 
@@ -350,7 +315,7 @@ function onCellClick(e) {
       return;
     }
 
-    const targets = validMoveTargets(selectedUnitId);
+    const targets = validMoveTargets(selectedUnitId, boardState, boardState.turn);
 
     if (unitId) {
       const occ   = boardState.units[unitId];
