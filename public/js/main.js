@@ -233,18 +233,27 @@ function renderHUD() {
   indicator.textContent = `Player ${cp}'s Turn`;
   indicator.className   = `turn-indicator player-${cp}`;
 
+  const roundNumber = turnNumber === 0 ? 1 : Math.ceil(turnNumber / 2);
   const turnCounterEl = document.getElementById('turn-counter');
-  if (turnCounterEl) turnCounterEl.textContent = `Turn ${turnNumber}`;
+  if (turnCounterEl) turnCounterEl.textContent = `Turn ${roundNumber}`;
 
   document.getElementById('action-count').textContent = `${actionCount} / ${maxActions}`;
 
+  const STAGE_TOOLTIP =
+    'Stages increase the action limit for all players. ' +
+    'Every 21 moves, each player gains +1 action per turn. ' +
+    'Stage 1: moves 1–21 (3 actions). ' +
+    'Stage 2: moves 22–42 (4 actions). ' +
+    'Stage 3 and beyond continue adding 1 action every 21 moves.';
+
   const bumpEl = document.getElementById('action-bump');
   if (bumpEl) {
+    bumpEl.title = STAGE_TOOLTIP;
     if (turnsUntilActionBump === 1) {
-      bumpEl.textContent = ` · ↑${nextMaxActions} next!`;
+      bumpEl.textContent = ' · Next Stage next move!';
       bumpEl.className = 'action-bump action-bump-soon';
     } else {
-      bumpEl.textContent = ` · ↑${nextMaxActions} in ${turnsUntilActionBump}`;
+      bumpEl.textContent = ` · Next Stage in ${turnsUntilActionBump} moves`;
       bumpEl.className = 'action-bump';
     }
   }
