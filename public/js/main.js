@@ -204,23 +204,24 @@ function renderHUD() {
 
   document.getElementById('action-count').textContent = `${actionCount} / ${maxActions}`;
 
+  // ── Stage progress ring ───────────────────────────────────
   const STAGE_TOOLTIP =
     'Stages increase the action limit for all players. ' +
-    'Every 21 moves, each player gains +1 action per turn. ' +
-    'Stage 1: moves 1–21 (3 actions). ' +
-    'Stage 2: moves 22–42 (4 actions). ' +
-    'Stage 3 and beyond continue adding 1 action every 21 moves.';
+    'Every 17 moves, each player gains +1 action per turn. ' +
+    'Stage 1: moves 1–17 (3 actions). Stage 2: moves 18–34 (4 actions). ' +
+    'Stage 3 and beyond continue adding 1 action every 17 moves.';
 
   const bumpEl = document.getElementById('action-bump');
-  if (bumpEl) {
+  const fillEl = document.getElementById('stage-ring-fill');
+  if (bumpEl && fillEl) {
+    const stageSize      = boardState.turn.stageSize ?? 17;
+    const movesCompleted = stageSize - turnsUntilActionBump;
+    const circumference  = 2 * Math.PI * 9;
+    const fillFraction   = Math.max(0, Math.min(1, movesCompleted / stageSize));
+    fillEl.style.strokeDasharray  = `${circumference.toFixed(3)} ${circumference.toFixed(3)}`;
+    fillEl.style.strokeDashoffset = (circumference * (1 - fillFraction)).toFixed(3);
+    fillEl.classList.toggle('stage-ring-soon', turnsUntilActionBump <= 3);
     bumpEl.title = STAGE_TOOLTIP;
-    if (turnsUntilActionBump === 1) {
-      bumpEl.textContent = ' · Next Stage next move!';
-      bumpEl.className = 'action-bump action-bump-soon';
-    } else {
-      bumpEl.textContent = ` · Next Stage in ${turnsUntilActionBump} moves`;
-      bumpEl.className = 'action-bump';
-    }
   }
 
   document.getElementById('money-1').textContent     = `$${mon[1] ?? 0}`;
@@ -228,17 +229,25 @@ function renderHUD() {
   document.getElementById('territory-1').textContent = counts[1] ?? 0;
   document.getElementById('territory-2').textContent = counts[2] ?? 0;
 
-  // Single central territory advantage display
-  const t1    = counts[1] ?? 0;
-  const t2    = counts[2] ?? 0;
-  const advEl = document.getElementById('territory-advantage');
-  if (advEl) {
-    const diff    = t1 - t2;
-    const absDiff = Math.abs(diff);
-    const sizeClass  = absDiff > 20 ? 'terr-adv-lg' : absDiff > 10 ? 'terr-adv-md' : 'terr-adv-sm';
-    const colorClass = diff > 0 ? 'terr-adv-p1' : diff < 0 ? 'terr-adv-p2' : 'terr-adv-zero';
-    advEl.textContent = diff === 0 ? '0' : `+${absDiff}`;
-    advEl.className   = `territory-advantage ${sizeClass} ${colorClass}`;
+  // ── Territory bar ─────────────────────────────────────────
+  const totalCells = boardState.board.length * (boardState.board[0]?.length ?? 0);
+  const p1Cells    = counts[1] ?? 0;
+  const p2Cells    = counts[2] ?? 0;
+  const neutCells  = Math.max(0, totalCells - p1Cells - p2Cells);
+  if (totalCells > 0) {
+    const fmt = (n) => `${(n / totalCells * 100).toFixed(2)}%`;
+    const p1Bar   = document.getElementById('territory-bar-p1');
+    const neutBar = document.getElementById('territory-bar-neutral');
+    const p2Bar   = document.getElementById('territory-bar-p2');
+    if (p1Bar)   p1Bar.style.width   = fmt(p1Cells);
+    if (neutBar) neutBar.style.width = fmt(neutCells);
+    if (p2Bar)   p2Bar.style.width   = fmt(p2Cells);
+  }
+
+  // ── Submit button highlight ───────────────────────────────
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) {
+    submitBtn.classList.toggle('submit-ready', actionCount >= maxActions && actionCount > 0 && isMyTurn());
   }
 
   // Net worth

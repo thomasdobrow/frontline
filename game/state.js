@@ -1,7 +1,8 @@
 // ── Constants (module-level, shared across all game instances) ─────────────
 
-const BOARD_SIZE = 11;
-const MOVE_RANGE = 2;
+const BOARD_SIZE  = 11;
+const MOVE_RANGE  = 2;
+const STAGE_SIZE  = 17;  // individual player turns per action-limit stage (3→4→5→…)
 
 const UNIT_CONFIG = {
   large:  { range: 3 },
@@ -64,10 +65,10 @@ function createGame() {
     return (BEATS[attackerType] || []).includes(defenderType);
   }
 
-  // Actions per turn escalates every 21 global turns: 3 → 4 → 5 → …
+  // Actions per turn escalates every STAGE_SIZE global turns: 3 → 4 → 5 → …
   function currentMaxActions() {
     if (globalTurnNumber < 1) return 3;
-    return 3 + Math.floor((globalTurnNumber - 1) / 21);
+    return 3 + Math.floor((globalTurnNumber - 1) / STAGE_SIZE);
   }
 
   function effectiveMoveRange(unit) {
@@ -411,10 +412,10 @@ function createGame() {
         .reduce((sum, u) => sum + (UNIT_COSTS[u.type] || 0), 0);
 
     const curMax             = currentMaxActions();
-    const phase              = globalTurnNumber > 0 ? Math.floor((globalTurnNumber - 1) / 21) : 0;
+    const phase              = globalTurnNumber > 0 ? Math.floor((globalTurnNumber - 1) / STAGE_SIZE) : 0;
     const turnsUntilActionBump = globalTurnNumber > 0
-      ? (phase + 1) * 21 + 1 - globalTurnNumber
-      : 21;
+      ? (phase + 1) * STAGE_SIZE + 1 - globalTurnNumber
+      : STAGE_SIZE;
     const hasActedAny = turnMoves.size > 0 || turnAttacks.size > 0;
 
     return {
@@ -432,6 +433,7 @@ function createGame() {
         maxActions:          curMax,
         turnsUntilActionBump,
         nextMaxActions:      curMax + 1,
+        stageSize:           STAGE_SIZE,
         movedUnitIds:        [...turnMoves.keys()],
         placedUnitIds:       [...turnPlacements],
         attackedUnitIds:     [...turnAttacks.keys()],
@@ -448,4 +450,4 @@ function createGame() {
 
 // ── Module exports ────────────────────────────────────────────────────────
 
-module.exports = { createGame, BOARD_SIZE, UNIT_COSTS, BEATS, isMountain };
+module.exports = { createGame, BOARD_SIZE, STAGE_SIZE, UNIT_COSTS, BEATS, isMountain };

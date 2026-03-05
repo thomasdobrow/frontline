@@ -115,8 +115,8 @@ describe('Scenario: combat chain with HP tracking across turns', () => {
   });
 });
 
-describe('Scenario: stage escalation after 21 turns', () => {
-  it('maxActions bumps from 3 to 4 after 21 individual player turns', () => {
+describe('Scenario: stage escalation after 17 turns', () => {
+  it('maxActions bumps from 3 to 4 after 17 individual player turns', () => {
     const game = createGame();
     game.placeInitialUnit('medium', 5, 5, 1);
     game.startTurn();
@@ -124,18 +124,18 @@ describe('Scenario: stage escalation after 21 turns', () => {
     assert.equal(game.getState().turn.maxActions, 3, 'starts at 3');
 
     // globalTurnNumber starts at 1 (from startTurn). submitTurn calls startTurn internally.
-    // After 21 submits, globalTurnNumber = 22, which is stage 2 (maxActions = 4).
-    for (let i = 0; i < 21; i++) game.submitTurn();
+    // After 17 submits, globalTurnNumber = 18, which is stage 2 (maxActions = 4).
+    for (let i = 0; i < 17; i++) game.submitTurn();
 
     assert.equal(game.getState().turn.maxActions, 4, 'bumped to 4 at turn 22');
   });
 
-  it('maxActions bumps from 4 to 5 after 42 individual player turns', () => {
+  it('maxActions bumps from 4 to 5 after 34 individual player turns', () => {
     const game = createGame();
     game.placeInitialUnit('medium', 5, 5, 1);
     game.startTurn();
 
-    for (let i = 0; i < 42; i++) game.submitTurn(); // globalTurnNumber = 43
+    for (let i = 0; i < 34; i++) game.submitTurn(); // globalTurnNumber = 43
 
     assert.equal(game.getState().turn.maxActions, 5, 'bumped to 5 at turn 43');
   });
@@ -143,15 +143,15 @@ describe('Scenario: stage escalation after 21 turns', () => {
   it('turnsUntilActionBump counts down correctly', () => {
     const game = createGame();
     game.placeInitialUnit('medium', 5, 5, 1);
-    game.startTurn(); // globalTurnNumber = 1 → 21 until bump
+    game.startTurn(); // globalTurnNumber = 1 → 17 until bump
 
-    assert.equal(game.getState().turn.turnsUntilActionBump, 21);
+    assert.equal(game.getState().turn.turnsUntilActionBump, 17);
 
-    game.submitTurn(); // globalTurnNumber = 2 → 20 remaining
-    assert.equal(game.getState().turn.turnsUntilActionBump, 20);
+    game.submitTurn(); // globalTurnNumber = 2 → 16 remaining
+    assert.equal(game.getState().turn.turnsUntilActionBump, 16);
 
-    game.submitTurn(); // globalTurnNumber = 3 → 19 remaining
-    assert.equal(game.getState().turn.turnsUntilActionBump, 19);
+    game.submitTurn(); // globalTurnNumber = 3 → 15 remaining
+    assert.equal(game.getState().turn.turnsUntilActionBump, 15);
   });
 });
 

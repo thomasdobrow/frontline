@@ -103,17 +103,36 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Action bump countdown ── */
-.action-bump {
-  font-size: 0.65rem;
-  color: var(--text-dim);
-  letter-spacing: 0.03em;
-  margin-left: 0.15em;
+/* ── Stage progress ring ── */
+.stage-ring-wrap {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5em;
   cursor: help;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
-
-.action-bump.action-bump-soon {
-  color: var(--accent);
+.stage-ring {
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+.stage-ring-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3;
+}
+.stage-ring-fill {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transform-origin: 12px 12px;
+  transform: rotate(-90deg);
+  transition: stroke-dashoffset 0.4s ease, stroke 0.2s;
+}
+.stage-ring-fill.stage-ring-soon {
+  stroke: var(--accent);
 }
 
 /* ── Turn controls ── */
@@ -137,6 +156,11 @@ body {
 }
 
 .turn-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.turn-btn.submit-ready {
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -227,6 +251,47 @@ body {
 .unit-btn.off-turn {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* ── Unit button icons ── */
+.btn-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-unit-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  background: currentColor; /* inherits text color: dim, accent on hover/active, etc. */
+}
+
+.large-icon {
+  width: 14px;
+  height: 14px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.medium-icon {
+  width: 14px;
+  height: 10px;
+  border-radius: 1px;
+}
+
+.small-icon {
+  width: 11px;
+  height: 11px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.tower-icon {
+  width: 11px;
+  height: 14px;
+  clip-path: polygon(
+    35% 100%, 35% 45%, 0% 45%, 0% 25%,
+    35% 25%, 35% 0%, 65% 0%, 65% 25%,
+    100% 25%, 100% 45%, 65% 45%, 65% 100%
+  );
 }
 
 /* ── Board ── */
@@ -472,13 +537,13 @@ body {
   color: var(--text);
 }
 
-/* ── Territory advantage (central, between stat blocks) ── */
+/* ── Territory bar (central, between stat blocks) ── */
 .terr-adv-section {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  padding: 0.2rem 0;
+  align-items: stretch;
+  gap: 0.3rem;
+  padding: 0.4rem 0.9rem;
 }
 
 .terr-adv-label {
@@ -486,20 +551,28 @@ body {
   color: var(--text-dim);
   letter-spacing: 0.15em;
   text-transform: uppercase;
+  text-align: center;
 }
 
-.territory-advantage {
-  font-weight: 700;
-  line-height: 1;
-  transition: color 0.15s, font-size 0.15s;
+.territory-bar {
+  display: flex;
+  width: 100%;
+  height: 7px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--border);
 }
 
-.terr-adv-sm   { font-size: 1rem; }
-.terr-adv-md   { font-size: 1.5rem; }
-.terr-adv-lg   { font-size: 2.1rem; }
-.terr-adv-p1   { color: var(--p1-color); }
-.terr-adv-p2   { color: var(--p2-color); }
-.terr-adv-zero { color: var(--text-dim); }
+.territory-bar-p1,
+.territory-bar-neutral,
+.territory-bar-p2 {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.territory-bar-p1      { background: var(--p1-color); }
+.territory-bar-neutral { background: var(--border); }
+.territory-bar-p2      { background: var(--p2-color); }
 
 /* ── Lobby ───────────────────────────────────────────────── */
 .lobby-body {

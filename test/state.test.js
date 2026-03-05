@@ -707,33 +707,33 @@ describe('Territory mechanics', () => {
 
 // ── Action limit escalation ───────────────────────────────
 describe('Action limit escalation', () => {
-  it('turnsUntilActionBump is 21 on turn 1', () => {
+  it('turnsUntilActionBump is 17 on turn 1', () => {
     setup();
-    assert.equal(game.getState().turn.turnsUntilActionBump, 21);
+    assert.equal(game.getState().turn.turnsUntilActionBump, 17);
   });
 
-  it('maxActions is 3 for the first 21 turns', () => {
+  it('maxActions is 3 for the first 17 turns', () => {
     game = createGame();
     game.placeInitialUnit('medium', 5, 5, 1);
     game.startTurn();
     assert.equal(game.getState().turn.maxActions, 3);
   });
 
-  it('maxActions becomes 4 after 21 submitTurns', () => {
+  it('maxActions becomes 4 after 17 submitTurns', () => {
     game = createGame();
     game.placeInitialUnit('medium', 5, 5, 1);
     game.startTurn();
-    // 21 submits = 21 individual player turns (globalTurnNumber goes from 1 to 22)
-    for (let i = 0; i < 21; i++) game.submitTurn();
+    // 17 submits = 17 individual player turns (globalTurnNumber goes from 1 to 18)
+    for (let i = 0; i < 17; i++) game.submitTurn();
     assert.equal(game.getState().turn.maxActions, 4);
   });
 
-  it('turnsUntilActionBump resets to 21 at the stage boundary', () => {
+  it('turnsUntilActionBump resets to 17 at the stage boundary', () => {
     game = createGame();
     game.placeInitialUnit('medium', 5, 5, 1);
     game.startTurn();
-    for (let i = 0; i < 21; i++) game.submitTurn(); // now at globalTurnNumber=22, stage 2
-    assert.equal(game.getState().turn.turnsUntilActionBump, 21);
+    for (let i = 0; i < 17; i++) game.submitTurn(); // now at globalTurnNumber=18, stage 2
+    assert.equal(game.getState().turn.turnsUntilActionBump, 17);
   });
 });
 
