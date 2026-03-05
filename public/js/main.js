@@ -281,23 +281,19 @@ function renderHUD() {
 
   // Update button cost labels dynamically from server costs
   if (costs) {
-    [1, 2].forEach(p => {
-      ['large', 'medium', 'small', 'tower'].forEach(t => {
-        const el = document.getElementById(`cost-${p}-${t}`);
-        if (el) el.textContent = `$${costs[t]}`;
-      });
+    ['large', 'medium', 'small', 'tower'].forEach(t => {
+      const el = document.getElementById(`cost-${t}`);
+      if (el) el.textContent = `$${costs[t]}`;
     });
   }
 
   document.querySelectorAll('.unit-btn').forEach(btn => {
-    const btnPlayer = parseInt(btn.dataset.player);
     const btnType   = btn.dataset.type;
-    const notMe     = btnPlayer !== myPlayer;
-    const offTurn   = btnPlayer !== cp;
+    const offTurn   = !isMyTurn();
     const noFunds   = !offTurn && (mon[cp] ?? 0) < (costs?.[btnType] ?? 0);
     const noActions = !offTurn && actionsLeft() <= 0;
     const postMove  = !offTurn && hasMovedAny; // placement locked after first move
-    const disabled  = notMe || offTurn || noFunds || noActions || postMove;
+    const disabled  = offTurn || noFunds || noActions || postMove;
     btn.classList.toggle('off-turn', disabled);
     if (disabled && btn.classList.contains('active')) {
       btn.classList.remove('active');
@@ -371,12 +367,11 @@ function onCellClick(e) {
 }
 
 // ── Button activation ─────────────────────────────────────
-function setActive(player, type) {
+function setActive(type) {
   document.querySelectorAll('.unit-btn').forEach(btn =>
-    btn.classList.toggle('active',
-      btn.dataset.player === String(player) && btn.dataset.type === type)
+    btn.classList.toggle('active', btn.dataset.type === type)
   );
-  active = { player, type };
+  active = { type };
   selectedUnitId = null;
   renderBoard();
 }
@@ -390,10 +385,9 @@ function initButtons() {
   document.querySelectorAll('.unit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.classList.contains('off-turn')) return;
-      const player = parseInt(btn.dataset.player);
-      const type   = btn.dataset.type;
-      const alreadyActive = active?.player === player && active?.type === type;
-      alreadyActive ? clearActive() : setActive(player, type);
+      const type          = btn.dataset.type;
+      const alreadyActive = active?.type === type;
+      alreadyActive ? clearActive() : setActive(type);
     });
   });
 

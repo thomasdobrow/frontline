@@ -200,7 +200,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  min-width: 120px;
+  min-width: 140px;
 }
 
 .sidebar-section {
@@ -215,9 +215,9 @@ body {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 0.9rem;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   letter-spacing: 0.05em;
   cursor: pointer;
   text-align: left;
@@ -227,6 +227,10 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
+}
+
+.unit-btn.tower-btn {
+  margin-top: 0.6rem;
 }
 
 .unit-cost {
