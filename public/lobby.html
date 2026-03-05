@@ -21,6 +21,55 @@
     </div>
 
     <p class="lobby-error" id="lobby-error"></p>
+    <button class="rules-link-btn" id="rules-btn">How to play?</button>
+  </div>
+
+  <!-- ── Rules modal ───────────────────────────────────── -->
+  <div class="rules-overlay" id="rules-overlay">
+    <div class="rules-box">
+      <button class="rules-close" id="rules-close" aria-label="Close">✕</button>
+      <h2 class="rules-title">HOW TO PLAY</h2>
+      <p class="rules-lead">Two players alternate turns on an 11×11 grid. Build an army, claim territory, and destroy every enemy unit to win.</p>
+
+      <h3 class="rules-h3">Starting Out</h3>
+      <p>Player 1 starts with <strong>$60</strong>. Player 2 starts with <strong>$70</strong> (slight compensation for going second). On your turn you may place units, move units, and attack — up to your action limit.</p>
+
+      <h3 class="rules-h3">Units</h3>
+      <table class="rules-table">
+        <thead><tr><th></th><th>Name</th><th>Cost</th><th>Beats</th></tr></thead>
+        <tbody>
+          <tr><td class="rules-icon">◆</td><td>Small</td><td>$25</td><td>Large, Tower</td></tr>
+          <tr><td class="rules-icon">●</td><td>Medium</td><td>$60</td><td>Small, Tower</td></tr>
+          <tr><td class="rules-icon">⬡</td><td>Large</td><td>$100</td><td>Medium, Tower</td></tr>
+          <tr><td class="rules-icon">■</td><td>Tower</td><td>$50</td><td>— (can't move)</td></tr>
+        </tbody>
+      </table>
+      <p>Every unit starts with <strong>2 HP</strong>. A red dot marks a damaged unit (1 HP).</p>
+
+      <h3 class="rules-h3">Combat</h3>
+      <p>Move onto an enemy cell to attack. If you beat that unit type, it's destroyed and you take its cell. Same-type vs. same-type: both take 1 damage and you stay in place — either or both may be destroyed. Tower beats nothing; it relies on friendly units to protect it.</p>
+
+      <h3 class="rules-h3">Territory</h3>
+      <p>Each unit projects territory onto surrounding cells — but only when within 2 cells of another friendly unit. <strong>Towers always project.</strong> Contested cells (claimed by both players) belong to neither. Territory radius: Small 1, Medium 2, Large 3, Tower 2.</p>
+
+      <h3 class="rules-h3">Income</h3>
+      <p>Collected at the <strong>end of your turn</strong>: <strong>$10 base + $1 per territory cell + $3 per tower you own.</strong></p>
+
+      <h3 class="rules-h3">Placement</h3>
+      <p>Units can only be placed in your own (uncontested) territory. Placement is locked once you've moved or attacked this turn.</p>
+
+      <h3 class="rules-h3">Movement</h3>
+      <p>Units move up to <strong>2 cells</strong> per turn (horizontal/vertical, no diagonals). A unit <em>standing on</em> a <strong>▲ mountain</strong> moves 3. Towers cannot move. Each unit moves at most once per turn.</p>
+
+      <h3 class="rules-h3">Actions</h3>
+      <p>You start with <strong>3 actions per turn</strong>. Every 17 turns the limit increases by 1. The ring next to the action counter shows progress toward the next increase.</p>
+
+      <h3 class="rules-h3">Mountains (▲)</h3>
+      <p>Four mountain tiles are on the board. Units cannot be placed on them, but a unit already standing on a mountain gains +1 movement range.</p>
+
+      <h3 class="rules-h3">Undo &amp; Restart</h3>
+      <p>Any action this turn can be undone. <strong>Restart Turn</strong> reverts everything to the start of your turn.</p>
+    </div>
   </div>
 
   <script>
@@ -51,6 +100,13 @@
 
     joinBtn.addEventListener('click', joinGame);
     roomInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
+
+    const rulesOverlay = document.getElementById('rules-overlay');
+    const rulesClose   = document.getElementById('rules-close');
+    document.getElementById('rules-btn')?.addEventListener('click', () => rulesOverlay.classList.add('visible'));
+    rulesClose?.addEventListener('click', () => rulesOverlay.classList.remove('visible'));
+    rulesOverlay?.addEventListener('click', e => { if (e.target === rulesOverlay) rulesOverlay.classList.remove('visible'); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') rulesOverlay?.classList.remove('visible'); });
   </script>
 </body>
 </html>

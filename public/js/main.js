@@ -409,6 +409,19 @@ function initButtons() {
   });
 }
 
+// ── Rules modal ───────────────────────────────────────────
+function initRules() {
+  const overlay  = document.getElementById('rules-overlay');
+  const closeBtn = document.getElementById('rules-close');
+  const openBtn  = document.getElementById('rules-btn');
+  if (!overlay) return;
+  openBtn?.addEventListener('click', () => overlay.classList.add('visible'));
+  closeBtn?.addEventListener('click', () => overlay.classList.remove('visible'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('visible'); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('visible'); });
+}
+
 // ── Init ──────────────────────────────────────────────────
 initButtons();
+initRules();
 showOverlay('Connecting…', '', false);

@@ -843,3 +843,111 @@ body {
   50%       { outline: 2px solid var(--p2-color); }
 }
 .board.error-flash { animation: error-flash 0.3s ease; }
+
+/* ── Rules modal ─────────────────────────────────────────── */
+.rules-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 15, 20, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.rules-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.rules-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2rem 2.25rem;
+  max-width: 520px;
+  width: 92vw;
+  max-height: 82vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  position: relative;
+}
+.rules-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.9rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  line-height: 1;
+}
+.rules-close:hover { color: var(--text); }
+.rules-title {
+  font-size: 1.1rem;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+.rules-lead {
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+.rules-h3 {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-top: 0.5rem;
+  margin-bottom: -0.25rem;
+}
+.rules-box p {
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+.rules-box p strong { color: var(--text); }
+.rules-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.78rem;
+}
+.rules-table th {
+  text-align: left;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0.25rem 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+.rules-table td {
+  padding: 0.3rem 0.5rem;
+  color: var(--text);
+  border-bottom: 1px solid rgba(56, 60, 70, 0.4);
+}
+.rules-table td:nth-child(2) { font-weight: 700; }
+.rules-table td:nth-child(3) { color: var(--accent); }
+.rules-table td:nth-child(4) { color: var(--text-dim); font-size: 0.73rem; }
+.rules-icon { font-size: 0.85rem; }
+.rules-link-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  margin-top: -0.25rem;
+}
+.rules-link-btn:hover { color: var(--text); }
