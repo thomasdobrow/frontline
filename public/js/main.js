@@ -60,6 +60,7 @@ socket.on('game-started', () => {
 socket.on('state-update', (state) => {
   boardState = state;
   renderBoard();
+  if (boardState.winner) showGameOver(boardState.winner, boardState.winReason);
 });
 
 socket.on('action-error', (msg) => {
@@ -409,6 +410,58 @@ function initButtons() {
   });
 }
 
+// ── Game over ─────────────────────────────────────────────
+function showGameOver(winner, winReason) {
+  const overlay  = document.getElementById('gameover-overlay');
+  const resultEl = document.getElementById('gameover-result');
+  const reasonEl = document.getElementById('gameover-reason');
+  if (!overlay) return;
+
+  const loserNum = winner === 1 ? 2 : 1;
+
+  if (myPlayer === winner) {
+    resultEl.textContent = 'YOU WIN';
+    resultEl.style.color = `var(--p${winner}-color)`;
+  } else {
+    resultEl.textContent = 'YOU LOSE';
+    resultEl.style.color = 'var(--text-dim)';
+  }
+
+  reasonEl.textContent = winReason === 'resignation'
+    ? `Player ${loserNum} resigned`
+    : `Player ${loserNum} has no units remaining`;
+
+  overlay.classList.add('visible');
+}
+
+// ── Resign ────────────────────────────────────────────────
+function initResign() {
+  const btn = document.getElementById('resign-btn');
+  if (!btn) return;
+  let confirming     = false;
+  let confirmTimeout = null;
+
+  btn.addEventListener('click', () => {
+    if (boardState.winner) return;
+    if (confirming) {
+      clearTimeout(confirmTimeout);
+      confirming = false;
+      btn.textContent = 'Resign';
+      btn.classList.remove('confirming');
+      socket.emit('resign');
+    } else {
+      confirming = true;
+      btn.textContent = 'Confirm?';
+      btn.classList.add('confirming');
+      confirmTimeout = setTimeout(() => {
+        confirming = false;
+        btn.textContent = 'Resign';
+        btn.classList.remove('confirming');
+      }, 3000);
+    }
+  });
+}
+
 // ── Rules modal ───────────────────────────────────────────
 function initRules() {
   const overlay  = document.getElementById('rules-overlay');
@@ -424,4 +477,5 @@ function initRules() {
 // ── Init ──────────────────────────────────────────────────
 initButtons();
 initRules();
+initResign();
 showOverlay('Connecting…', '', false);

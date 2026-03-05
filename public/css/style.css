@@ -951,3 +951,74 @@ body {
   margin-top: -0.25rem;
 }
 .rules-link-btn:hover { color: var(--text); }
+
+/* ── Resign button ───────────────────────────────────────── */
+.resign-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  z-index: 50;
+}
+.resign-btn:hover {
+  border-color: var(--p2-color);
+  color: var(--p2-color);
+}
+.resign-btn.confirming {
+  border-color: var(--p2-color);
+  color: var(--p2-color);
+  background: rgba(210, 55, 55, 0.1);
+}
+
+/* ── Game-over overlay ───────────────────────────────────── */
+.gameover-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 15, 20, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.gameover-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.gameover-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 3rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: center;
+  min-width: 280px;
+}
+.gameover-result {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+.gameover-reason {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+.gameover-lobby-btn {
+  margin-top: 0.5rem;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}

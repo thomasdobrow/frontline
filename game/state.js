@@ -51,6 +51,9 @@ function createGame() {
   let turnPlacements  = new Set(); // unitIds placed this turn
   let turnAttacks     = new Map(); // unitId → { targetId, capturedTarget, attackerHpBefore, targetHpBefore, targetDestroyed, attackerDestroyed }
 
+  let winner    = null; // null | 1 | 2
+  let winReason = null; // null | 'elimination' | 'resignation'
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function manhattan(r1, c1, r2, c2) {
@@ -63,6 +66,14 @@ function createGame() {
 
   function canCapture(attackerType, defenderType) {
     return (BEATS[attackerType] || []).includes(defenderType);
+  }
+
+  function checkWinner() {
+    if (winner !== null) return;
+    const p1Units = Object.values(state.units).filter(u => u.player === 1).length;
+    const p2Units = Object.values(state.units).filter(u => u.player === 2).length;
+    if      (p1Units === 0) { winner = 2; winReason = 'elimination'; }
+    else if (p2Units === 0) { winner = 1; winReason = 'elimination'; }
   }
 
   // Actions per turn escalates every STAGE_SIZE global turns: 3 → 4 → 5 → …
@@ -174,6 +185,7 @@ function createGame() {
   }
 
   function restartTurn() {
+    if (winner !== null)  return { error: 'Game is over' };
     if (!turnSnapshot) return { error: 'No turn snapshot available' };
     restoreSnapshot(turnSnapshot);
     turnSnapshot    = snapshotState();
@@ -185,6 +197,7 @@ function createGame() {
   }
 
   function submitTurn() {
+    if (winner !== null) return { error: 'Game is over' };
     collectIncome(currentPlayer); // collect at end of YOUR turn
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     startTurn();
@@ -194,6 +207,7 @@ function createGame() {
   // ── Validation ────────────────────────────────────────────────────────────
 
   function validatePlacement(type, row, col, player) {
+    if (winner !== null)                 return 'Game is over';
     if (player !== currentPlayer)       return 'Not your turn';
     if (turnMoves.size > 0 || turnAttacks.size > 0)
                                          return 'Cannot place units after moving';
@@ -213,6 +227,7 @@ function createGame() {
   }
 
   function validateMove(id, toRow, toCol) {
+    if (winner !== null)                return 'Game is over';
     const unit = state.units[id];
     if (!unit)                          return 'Unit not found';
     if (unit.type === 'tower')          return 'Towers cannot move';
@@ -330,6 +345,7 @@ function createGame() {
       });
       turnActionCount++;
       computeTerritory();
+      checkWinner();
       return { ok: true, attack: true };
     }
 
@@ -338,7 +354,9 @@ function createGame() {
       ? JSON.parse(JSON.stringify(targetUnit))
       : null;
 
-    if (targetId) delete state.units[targetId];
+    if (targetId) {
+      delete state.units[targetId];
+    }
 
     state.board[fromRow][fromCol].unitId = null;
     state.board[toRow][toCol].unitId     = id;
@@ -347,6 +365,7 @@ function createGame() {
     turnMoves.set(id, { fromRow, fromCol, capturedUnit });
     turnActionCount++;
     computeTerritory();
+    if (capturedUnit) checkWinner(); // only check when a unit was actually destroyed
     return { unit };
   }
 
@@ -403,6 +422,15 @@ function createGame() {
     return { ok: true };
   }
 
+  // ── Resign ────────────────────────────────────────────────────────────────
+
+  function resign(player) {
+    if (winner !== null) return { error: 'Game is already over' };
+    winner    = player === 1 ? 2 : 1;
+    winReason = 'resignation';
+    return { ok: true };
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
   function getState() {
@@ -427,6 +455,8 @@ function createGame() {
       unitCosts: UNIT_COSTS,
       nextIncome: { 1: nextIncomeFor(1), 2: nextIncomeFor(2) },
       netWorth:   { 1: (money[1] || 0) + unitNetWorth(1), 2: (money[2] || 0) + unitNetWorth(2) },
+      winner,
+      winReason,
       turnNumber: globalTurnNumber,
       turn: {
         actionCount:         turnActionCount,
@@ -444,7 +474,7 @@ function createGame() {
 
   return {
     getState, addUnit, moveUnit, undoUnitMove, undoUnitPlacement, undoUnitAttack,
-    restartTurn, submitTurn, placeInitialUnit, startTurn,
+    restartTurn, submitTurn, placeInitialUnit, startTurn, resign,
   };
 }
 

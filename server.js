@@ -244,6 +244,11 @@ io.on('connection', (socket) => {
     act('restart-turn', g => g.restartTurn());
   });
 
+  socket.on('resign', () => {
+    logger.info(`resign  player=${socket.data.player}  room=${socket.data.roomId}`);
+    act('resign', g => g.resign(socket.data.player));
+  });
+
   // ── disconnect ────────────────────────────────────────────────────────────
 
   socket.on('disconnect', (reason) => {
