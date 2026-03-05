@@ -229,7 +229,7 @@ function renderHUD() {
   document.getElementById('territory-1').textContent = counts[1] ?? 0;
   document.getElementById('territory-2').textContent = counts[2] ?? 0;
 
-  // ── Territory bar ─────────────────────────────────────────
+  // ── Territory bar + advantage number ─────────────────────
   const totalCells = boardState.board.length * (boardState.board[0]?.length ?? 0);
   const p1Cells    = counts[1] ?? 0;
   const p2Cells    = counts[2] ?? 0;
@@ -242,6 +242,12 @@ function renderHUD() {
     if (p1Bar)   p1Bar.style.width   = fmt(p1Cells);
     if (neutBar) neutBar.style.width = fmt(neutCells);
     if (p2Bar)   p2Bar.style.width   = fmt(p2Cells);
+  }
+  const advEl = document.getElementById('territory-advantage');
+  if (advEl) {
+    const diff = p1Cells - p2Cells;
+    advEl.textContent = diff === 0 ? '±0' : diff > 0 ? `+${diff}` : `${diff}`;
+    advEl.className   = `territory-advantage ${diff > 0 ? 'terr-adv-p1' : diff < 0 ? 'terr-adv-p2' : 'terr-adv-zero'}`;
   }
 
   // ── Submit button highlight ───────────────────────────────

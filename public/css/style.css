@@ -269,13 +269,14 @@ body {
 .large-icon {
   width: 14px;
   height: 14px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  /* flat-top hexagon — matches board unit marker exactly */
+  clip-path: polygon(25% 6.7%, 75% 6.7%, 100% 50%, 75% 93.3%, 25% 93.3%, 0% 50%);
 }
 
 .medium-icon {
-  width: 14px;
-  height: 10px;
-  border-radius: 1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%; /* circle — matches board unit marker */
 }
 
 .small-icon {
@@ -285,13 +286,9 @@ body {
 }
 
 .tower-icon {
-  width: 11px;
-  height: 14px;
-  clip-path: polygon(
-    35% 100%, 35% 45%, 0% 45%, 0% 25%,
-    35% 25%, 35% 0%, 65% 0%, 65% 25%,
-    100% 25%, 100% 45%, 65% 45%, 65% 100%
-  );
+  width: 12px;
+  height: 12px;
+  border-radius: 3px; /* rounded square — matches board unit marker */
 }
 
 /* ── Board ── */
@@ -554,9 +551,15 @@ body {
   text-align: center;
 }
 
+.terr-adv-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .territory-bar {
   display: flex;
-  width: 100%;
+  flex: 1;
   height: 7px;
   border-radius: 4px;
   overflow: hidden;
@@ -573,6 +576,19 @@ body {
 .territory-bar-p1      { background: var(--p1-color); }
 .territory-bar-neutral { background: var(--border); }
 .territory-bar-p2      { background: var(--p2-color); }
+
+.territory-advantage {
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 2.2rem;
+  text-align: right;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.terr-adv-p1   { color: var(--p1-color); }
+.terr-adv-p2   { color: var(--p2-color); }
+.terr-adv-zero { color: var(--text-dim); }
 
 /* ── Lobby ───────────────────────────────────────────────── */
 .lobby-body {
