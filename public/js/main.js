@@ -4,6 +4,10 @@ let selectedUnitId = null;
 let myPlayer     = null;  // assigned by server (1 or 2)
 let gameStarted  = false;
 
+const ORIGINAL_TITLE  = document.title;  // 'Sprawl'
+let blipInterval      = null;
+let prevCurrentPlayer = null;
+
 let boardState = {
   board: [], units: {}, territoryCounts: {},
   currentPlayer: 1, money: { 1: 0, 2: 0 },
@@ -56,12 +60,27 @@ socket.on('waiting', () => {
 socket.on('game-started', () => {
   gameStarted = true;
   hideOverlay();
+  if (document.hidden) {
+    document.title = '▶ Game On!';
+    setTimeout(() => {
+      if (document.title === '▶ Game On!') document.title = ORIGINAL_TITLE;
+    }, 2000);
+  }
 });
 
 socket.on('state-update', (state) => {
+  const wasMyTurn = prevCurrentPlayer === myPlayer;
   boardState = state;
   renderBoard();
   if (boardState.winner) showGameOver(boardState.winner, boardState.winReason);
+
+  const isNowMyTurn = boardState.currentPlayer === myPlayer;
+  if (isNowMyTurn && !wasMyTurn && gameStarted) {
+    startTabBlip();
+  } else if (!isNowMyTurn) {
+    stopTabBlip();
+  }
+  prevCurrentPlayer = boardState.currentPlayer;
 });
 
 socket.on('action-error', (msg) => {
@@ -102,6 +121,31 @@ function showOverlay(title, body, showCode) {
 function hideOverlay() {
   document.getElementById('overlay').classList.remove('visible');
 }
+
+// ── Tab notification blip ─────────────────────────────────
+function startTabBlip() {
+  if (!document.hidden) return;   // tab already focused — no need to blip
+  stopTabBlip();
+  let flashes = 0;
+  const MAX_FLASHES = 6;           // 3 full alternations over ~4.2 s
+  blipInterval = setInterval(() => {
+    document.title = document.title === ORIGINAL_TITLE ? '● Your Turn' : ORIGINAL_TITLE;
+    if (++flashes >= MAX_FLASHES) {
+      clearInterval(blipInterval);
+      blipInterval = null;
+      document.title = '● Your Turn';   // hold after flashing stops
+    }
+  }, 700);
+}
+
+function stopTabBlip() {
+  if (blipInterval) { clearInterval(blipInterval); blipInterval = null; }
+  document.title = ORIGINAL_TITLE;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) stopTabBlip();
+});
 
 document.getElementById('copy-btn').addEventListener('click', () => {
   navigator.clipboard.writeText(window.location.href).then(() => {
