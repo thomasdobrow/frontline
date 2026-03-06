@@ -11,6 +11,9 @@
     <h1 class="banner-title lobby-title">SPRAWL</h1>
     <p class="lobby-subtitle">Turn-based strategy</p>
 
+    <input class="lobby-input" id="username-input" placeholder="Your name (optional)"
+           maxlength="20" autocomplete="off" spellcheck="false" />
+
     <button class="lobby-btn" id="create-btn">Create New Game</button>
 
     <div class="lobby-divider"><span>or join existing</span></div>
@@ -22,6 +25,13 @@
 
     <p class="lobby-error" id="lobby-error"></p>
     <button class="rules-link-btn" id="rules-btn">How to play?</button>
+  </div>
+
+  <div class="lobby-carousel" id="lobby-carousel">
+    <p class="lobby-carousel-label">Active Games</p>
+    <div class="lobby-carousel-track" id="carousel-track">
+      <p class="carousel-empty">No active games</p>
+    </div>
   </div>
 
   <!-- ── Rules modal ───────────────────────────────────── -->
@@ -73,12 +83,24 @@
   </div>
 
   <script>
-    const createBtn  = document.getElementById('create-btn');
-    const joinBtn    = document.getElementById('join-btn');
-    const roomInput  = document.getElementById('room-input');
-    const errorEl    = document.getElementById('lobby-error');
+    const createBtn     = document.getElementById('create-btn');
+    const joinBtn       = document.getElementById('join-btn');
+    const roomInput     = document.getElementById('room-input');
+    const usernameInput = document.getElementById('username-input');
+    const errorEl       = document.getElementById('lobby-error');
 
+    // ── Username persistence ──────────────────────────────
+    const savedName = localStorage.getItem('sprawl_username');
+    if (savedName) usernameInput.value = savedName;
+
+    function saveUsername() {
+      const val = usernameInput.value.trim();
+      if (val) localStorage.setItem('sprawl_username', val);
+    }
+
+    // ── Create / Join ─────────────────────────────────────
     createBtn.addEventListener('click', async () => {
+      saveUsername();
       createBtn.disabled = true;
       createBtn.textContent = 'Creating…';
       try {
@@ -95,18 +117,55 @@
     function joinGame() {
       const code = roomInput.value.trim();
       if (!code) { errorEl.textContent = 'Enter a game code first.'; return; }
+      saveUsername();
       window.location.href = `/game/${code}`;
     }
 
     joinBtn.addEventListener('click', joinGame);
     roomInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
 
+    // ── Rules modal ───────────────────────────────────────
     const rulesOverlay = document.getElementById('rules-overlay');
     const rulesClose   = document.getElementById('rules-close');
     document.getElementById('rules-btn')?.addEventListener('click', () => rulesOverlay.classList.add('visible'));
     rulesClose?.addEventListener('click', () => rulesOverlay.classList.remove('visible'));
     rulesOverlay?.addEventListener('click', e => { if (e.target === rulesOverlay) rulesOverlay.classList.remove('visible'); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') rulesOverlay?.classList.remove('visible'); });
+
+    // ── Active games carousel ─────────────────────────────
+    async function loadCarousel() {
+      const track = document.getElementById('carousel-track');
+      try {
+        const res   = await fetch('/api/rooms');
+        const rooms = await res.json();
+        if (!rooms.length) {
+          track.innerHTML = '<p class="carousel-empty">No active games</p>';
+          return;
+        }
+        track.innerHTML = rooms.map(r => {
+          const p1     = r.usernames[1] || 'Player 1';
+          const p2     = r.usernames[2] || '…';
+          const status = !r.started
+            ? 'Waiting for opponent'
+            : `Turn ${Math.max(1, Math.ceil(r.turnNumber / 2))}`;
+          return `<div class="carousel-card" data-code="${r.roomId}">
+            <div class="carousel-code">${r.roomId}</div>
+            <div class="carousel-names">${p1} <span class="carousel-vs">vs</span> ${p2}</div>
+            <div class="carousel-status ${!r.started ? 'status-waiting' : 'status-active'}">${status}</div>
+          </div>`;
+        }).join('');
+        track.querySelectorAll('.carousel-card').forEach(card => {
+          card.addEventListener('click', () => {
+            roomInput.value = card.dataset.code;
+            roomInput.focus();
+          });
+        });
+      } catch {
+        track.innerHTML = '<p class="carousel-empty">—</p>';
+      }
+    }
+    loadCarousel();
+    setInterval(loadCarousel, 5000);
   </script>
 </body>
 </html>

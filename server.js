@@ -68,7 +68,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Room management ───────────────────────────────────────────────────────
 //
-// rooms: Map<roomId, { game, players: Map<socketId, playerNum (1|2)>, started: bool }>
+// rooms: Map<roomId, { game, players: Map<socketId, playerNum (1|2)>, started: bool, usernames: {1?: string, 2?: string} }>
 
 const rooms = new Map();
 
@@ -104,7 +104,7 @@ function createRoom() {
     logger.info(`  placeInitialUnit type=${u.type} row=${u.row} col=${u.col} player=${u.player}`);
     game.placeInitialUnit(u.type, u.row, u.col, u.player);
   });
-  rooms.set(roomId, { game, players: new Map(), started: false });
+  rooms.set(roomId, { game, players: new Map(), started: false, usernames: {} });
   logger.info(`Room ${roomId} created. Total rooms: ${rooms.size}`);
   return roomId;
 }
@@ -128,6 +128,24 @@ app.post('/api/rooms', (req, res) => {
   });
 });
 
+app.get('/api/rooms', (req, res) => {
+  guard('GET /api/rooms', () => {
+    const list = [];
+    rooms.forEach((room, roomId) => {
+      if (room.players.size === 0) return;
+      const st = room.game.getState();
+      list.push({
+        roomId,
+        playerCount: room.players.size,
+        started: room.started,
+        turnNumber: st.turnNumber,
+        usernames: room.usernames,
+      });
+    });
+    res.json(list);
+  });
+});
+
 // ── Socket.io ─────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
@@ -135,9 +153,12 @@ io.on('connection', (socket) => {
 
   // ── join-room ─────────────────────────────────────────────────────────────
 
-  socket.on('join-room', (roomId) => {
+  socket.on('join-room', (payload) => {
+    const { roomId, username } = typeof payload === 'string'
+      ? { roomId: payload, username: '' }
+      : payload;
     guard(`join-room socketId=${socket.id}`, () => {
-      logger.info(`join-room  socketId=${socket.id}  roomId=${roomId}`);
+      logger.info(`join-room  socketId=${socket.id}  roomId=${roomId}  username=${username || '(none)'}`);
       const room = rooms.get(roomId);
       if (!room) {
         logger.warn(`join-room: room not found roomId=${roomId}`);
@@ -154,10 +175,12 @@ io.on('connection', (socket) => {
 
       const playerNum = taken.includes(1) ? 2 : 1;
       room.players.set(socket.id, playerNum);
+      room.usernames[playerNum] = username || `Player ${playerNum}`;
       socket.data.roomId = roomId;
       socket.data.player = playerNum;
+      socket.data.username = room.usernames[playerNum];
       socket.join(roomId);
-      logger.info(`Player ${playerNum} joined room ${roomId}  socketId=${socket.id}`);
+      logger.info(`Player ${playerNum} (${room.usernames[playerNum]}) joined room ${roomId}  socketId=${socket.id}`);
 
       socket.emit('player-assigned', playerNum);
 
@@ -166,7 +189,7 @@ io.on('connection', (socket) => {
         room.game.startTurn();
         logger.info(`Game started in room ${roomId}`);
         io.to(roomId).emit('game-started');
-        io.to(roomId).emit('state-update', room.game.getState());
+        io.to(roomId).emit('state-update', { ...room.game.getState(), usernames: room.usernames });
       } else {
         logger.info(`Player ${playerNum} waiting in room ${roomId}`);
         socket.emit('waiting');
@@ -196,7 +219,7 @@ io.on('connection', (socket) => {
         socket.emit('action-error', result.error);
         return;
       }
-      const st = room.game.getState();
+      const st = { ...room.game.getState(), usernames: room.usernames };
       logger.info(`act:${eventName} → ok  currentPlayer=${st.currentPlayer}  actions=${st.turn.actionCount}/${st.turn.maxActions}  money=${JSON.stringify(st.money)}`);
       io.to(socket.data.roomId).emit('state-update', st);
     } catch (err) {

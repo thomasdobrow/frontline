@@ -30,7 +30,8 @@ const roomId = window.location.pathname.split('/').pop();
 const socket = io();
 
 socket.on('connect', () => {
-  socket.emit('join-room', roomId);
+  const username = localStorage.getItem('sprawl_username') || '';
+  socket.emit('join-room', { roomId, username });
 });
 
 socket.on('player-assigned', (num) => {
@@ -194,9 +195,20 @@ function renderHUD() {
   const ni       = boardState.nextIncome ?? {};
   const { actionCount, maxActions, turnsUntilActionBump, nextMaxActions, hasMovedAny } = boardState.turn;
   const turnNumber = boardState.turnNumber ?? 0;
+  const usernames  = boardState.usernames || {};
+
+  // ── Player name labels ────────────────────────────────────
+  [1, 2].forEach(p => {
+    const labelEl = document.querySelector(`.player-${p}-label`);
+    if (!labelEl) return;
+    const badge = labelEl.querySelector('.you-badge');  // preserve existing "you" badge
+    labelEl.textContent = usernames[p] || `Player ${p}`;
+    if (badge) labelEl.appendChild(badge);
+  });
 
   const indicator = document.getElementById('turn-indicator');
-  indicator.textContent = `Player ${cp}'s Turn`;
+  const cpName = usernames[cp] || `Player ${cp}`;
+  indicator.textContent = `${cpName}'s Turn`;
   indicator.className   = `turn-indicator player-${cp}`;
 
   const roundNumber = turnNumber === 0 ? 1 : Math.ceil(turnNumber / 2);
@@ -417,7 +429,9 @@ function showGameOver(winner, winReason) {
   const reasonEl = document.getElementById('gameover-reason');
   if (!overlay) return;
 
-  const loserNum = winner === 1 ? 2 : 1;
+  const loserNum  = winner === 1 ? 2 : 1;
+  const usernames = boardState.usernames || {};
+  const loserName = usernames[loserNum] || `Player ${loserNum}`;
 
   if (myPlayer === winner) {
     resultEl.textContent = 'YOU WIN';
@@ -428,8 +442,8 @@ function showGameOver(winner, winReason) {
   }
 
   reasonEl.textContent = winReason === 'resignation'
-    ? `Player ${loserNum} resigned`
-    : `Player ${loserNum} has no units remaining`;
+    ? `${loserName} resigned`
+    : `${loserName} has no units remaining`;
 
   overlay.classList.add('visible');
 }
