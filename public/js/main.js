@@ -174,6 +174,7 @@ function renderBoard() {
       const cell = document.createElement('div');
       cell.className = 'cell';
       if (boardState.board[row][col].mountain)  cell.classList.add('mountain');
+      if (boardState.board[row][col].water)     cell.classList.add('water');
       if (territory)                             cell.classList.add(`territory-${territory}`);
       else if (contested)                        cell.classList.add('territory-contested');
       if (unitId && unitId === selectedUnitId)   cell.classList.add('selected');

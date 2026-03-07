@@ -96,10 +96,56 @@ logger.info(
   `P2 at ${P1_START.map(p => `[${BOARD_SIZE-1-p.row},${BOARD_SIZE-1-p.col}](${p.type})`).join(',')}`
 );
 
+// ── Water tile generation ──────────────────────────────────────────────────
+//
+// Picks 2–4 symmetric pairs of water tiles (4–8 total).
+// A "pair" is (r, c) and its mirror (c, r) — equal count on each side of
+// the main diagonal.  Forbidden: rim cells, mountains, starting positions.
+
+const MOUNTAIN_COORDS = [[3,3],[3,7],[7,3],[7,7]];
+
+const FORBIDDEN_WATER = new Set([
+  // Rim: row 0, row BOARD_SIZE-1, col 0, col BOARD_SIZE-1
+  ...Array.from({ length: BOARD_SIZE }, (_, i) =>
+    [`0,${i}`, `${BOARD_SIZE-1},${i}`, `${i},0`, `${i},${BOARD_SIZE-1}`]
+  ).flat(),
+  // Mountains
+  ...MOUNTAIN_COORDS.map(([r,c]) => `${r},${c}`),
+  // P1 starting positions
+  ...P1_START.map(({ row, col }) => `${row},${col}`),
+  // P2 starting positions (180° rotation)
+  ...P1_START.map(({ row, col }) => `${BOARD_SIZE-1-row},${BOARD_SIZE-1-col}`),
+]);
+
+function generateWaterTiles() {
+  // Collect upper-triangle candidates (r < c) where neither (r,c) nor (c,r) is forbidden
+  const candidates = [];
+  for (let r = 1; r < BOARD_SIZE - 1; r++) {
+    for (let c = r + 1; c < BOARD_SIZE - 1; c++) {
+      if (!FORBIDDEN_WATER.has(`${r},${c}`) && !FORBIDDEN_WATER.has(`${c},${r}`)) {
+        candidates.push([r, c]);
+      }
+    }
+  }
+  // Fisher-Yates shuffle
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  // Pick 2–4 pairs → 4–8 tiles
+  const pairCount = 2 + Math.floor(Math.random() * 3);
+  return candidates.slice(0, pairCount).flatMap(([r, c]) => [
+    { row: r, col: c },
+    { row: c, col: r },
+  ]);
+}
+
 function createRoom() {
   const roomId = crypto.randomUUID().slice(0, 8);
   logger.info(`Creating room roomId=${roomId}`);
-  const game = createGame();
+  const waterTiles = generateWaterTiles();
+  logger.info(`  waterTiles=${JSON.stringify(waterTiles)}`);
+  const game = createGame({ waterTiles });
   STARTING_UNITS.forEach(u => {
     logger.info(`  placeInitialUnit type=${u.type} row=${u.row} col=${u.col} player=${u.player}`);
     game.placeInitialUnit(u.type, u.row, u.col, u.player);

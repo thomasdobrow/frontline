@@ -28,7 +28,7 @@ const BEATS = {
 
 // ── Factory ───────────────────────────────────────────────────────────────
 
-function createGame() {
+function createGame({ waterTiles = [] } = {}) {
   // ── Mutable state (closed over per game instance) ──────────────────────
 
   let nextUnitId      = 1;
@@ -36,10 +36,12 @@ function createGame() {
   let globalTurnNumber = 0;
   let money            = { ...STARTING_MONEY };
 
+  const isWater = (r, c) => waterTiles.some(t => t.row === r && t.col === c);
+
   const state = {
     board: Array.from({ length: BOARD_SIZE }, (_, r) =>
       Array.from({ length: BOARD_SIZE }, (_, c) => ({
-        unitId: null, territory: null, mountain: isMountain(r, c),
+        unitId: null, territory: null, mountain: isMountain(r, c), water: isWater(r, c),
       }))
     ),
     units: {},
@@ -85,6 +87,35 @@ function createGame() {
   function effectiveMoveRange(unit) {
     const { row, col } = unit.position;
     return isMountain(row, col) ? MOVE_RANGE + 1 : MOVE_RANGE;
+  }
+
+  // BFS reachability check — respects water obstacles and unit blocking.
+  // Returns true if unit `id` can reach (toRow, toCol) within its move range.
+  function canReachCell(id, toRow, toCol) {
+    const unit  = state.units[id];
+    const range = effectiveMoveRange(unit);
+    const { row: startRow, col: startCol } = unit.position;
+    const queue   = [[startRow, startCol, 0]];
+    const visited = new Set([`${startRow},${startCol}`]);
+    while (queue.length) {
+      const [r, c, steps] = queue.shift();
+      if (r === toRow && c === toCol) return true;
+      if (steps >= range) continue;
+      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const nr = r + dr, nc = c + dc;
+        const key = `${nr},${nc}`;
+        if (visited.has(key)) continue;
+        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+        const cell = state.board[nr][nc];
+        if (cell.water) continue;
+        // Allow entering the destination even if occupied (enemy unit);
+        // block traversal through any other occupied cell.
+        if (cell.unitId && cell.unitId !== id && !(nr === toRow && nc === toCol)) continue;
+        visited.add(key);
+        queue.push([nr, nc, steps + 1]);
+      }
+    }
+    return false;
   }
 
   // ── Territory ─────────────────────────────────────────────────────────────
@@ -215,6 +246,7 @@ function createGame() {
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE)
                                          return 'Position out of bounds';
     if (isMountain(row, col))            return 'Cannot place units on mountains';
+    if (state.board[row][col].water)     return 'Cannot place units on water';
     if (state.board[row][col].unitId !== null) return 'Cell already occupied';
 
     const cost = UNIT_COSTS[type];
@@ -243,6 +275,8 @@ function createGame() {
     const dist  = manhattan(unit.position.row, unit.position.col, toRow, toCol);
     if (dist === 0)      return 'Already at that position';
     if (dist > range)    return `Cannot move more than ${range} spaces`;
+    if (state.board[toRow][toCol].water)  return 'Cannot move onto water';
+    if (!canReachCell(id, toRow, toCol))  return 'Cannot reach that cell';
 
     const targetId = state.board[toRow][toCol].unitId;
     if (targetId) {
@@ -463,6 +497,7 @@ function createGame() {
     return {
       board: state.board,
       units: state.units,
+      waterTiles,
       territoryCounts: territoryCounts(),
       currentPlayer,
       money,
