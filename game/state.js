@@ -336,12 +336,18 @@ function createGame() {
       if (attackerDestroyed) {
         state.board[fromRow][fromCol].unitId = null;
         delete state.units[id];
+      } else if (targetDestroyed) {
+        // Attacker survived and destroyed target — advance into the conquered cell
+        state.board[fromRow][fromCol].unitId = null;
+        state.board[toRow][toCol].unitId = id;
+        unit.position = { row: toRow, col: toCol };
       }
 
       turnAttacks.set(id, {
         targetId, capturedTarget,
         attackerHpBefore, targetHpBefore,
         targetDestroyed, attackerDestroyed,
+        fromRow, fromCol,
       });
       turnActionCount++;
       computeTerritory();
@@ -397,13 +403,21 @@ function createGame() {
     if (!turnAttacks.has(id)) return { error: 'Unit has not attacked this turn' };
 
     const { targetId, capturedTarget, attackerHpBefore, targetHpBefore,
-            targetDestroyed, attackerDestroyed } = turnAttacks.get(id);
+            targetDestroyed, attackerDestroyed, fromRow, fromCol } = turnAttacks.get(id);
 
     // If attacker was destroyed they can't be double-clicked — restart-turn handles it
     if (attackerDestroyed) return { error: 'Attacker was destroyed — use Restart Turn to undo' };
 
     const unit = state.units[id];
     if (!unit) return { error: 'Attacker not found — use Restart Turn to undo' };
+
+    // Restore attacker position if it advanced into the target cell
+    if (targetDestroyed && !attackerDestroyed) {
+      const { row: curRow, col: curCol } = unit.position;
+      state.board[curRow][curCol].unitId = null;
+      state.board[fromRow][fromCol].unitId = id;
+      unit.position = { row: fromRow, col: fromCol };
+    }
 
     // Restore attacker HP
     unit.hp = attackerHpBefore;

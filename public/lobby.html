@@ -16,13 +16,6 @@
 
     <button class="lobby-btn" id="create-btn">Create New Game</button>
 
-    <div class="lobby-divider"><span>or join existing</span></div>
-
-    <div class="lobby-join">
-      <input class="lobby-input" id="room-input" placeholder="Game code" maxlength="8" autocomplete="off" spellcheck="false" />
-      <button class="lobby-btn lobby-btn-secondary" id="join-btn">Join</button>
-    </div>
-
     <p class="lobby-error" id="lobby-error"></p>
     <button class="rules-link-btn" id="rules-btn">How to play?</button>
   </div>
@@ -84,8 +77,6 @@
 
   <script>
     const createBtn     = document.getElementById('create-btn');
-    const joinBtn       = document.getElementById('join-btn');
-    const roomInput     = document.getElementById('room-input');
     const usernameInput = document.getElementById('username-input');
     const errorEl       = document.getElementById('lobby-error');
 
@@ -98,7 +89,7 @@
       if (val) localStorage.setItem('sprawl_username', val);
     }
 
-    // ── Create / Join ─────────────────────────────────────
+    // ── Create ────────────────────────────────────────────
     createBtn.addEventListener('click', async () => {
       saveUsername();
       createBtn.disabled = true;
@@ -113,16 +104,6 @@
         createBtn.textContent = 'Create New Game';
       }
     });
-
-    function joinGame() {
-      const code = roomInput.value.trim();
-      if (!code) { errorEl.textContent = 'Enter a game code first.'; return; }
-      saveUsername();
-      window.location.href = `/game/${code}`;
-    }
-
-    joinBtn.addEventListener('click', joinGame);
-    roomInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
 
     // ── Rules modal ───────────────────────────────────────
     const rulesOverlay = document.getElementById('rules-overlay');
@@ -156,8 +137,8 @@
         }).join('');
         track.querySelectorAll('.carousel-card').forEach(card => {
           card.addEventListener('click', () => {
-            roomInput.value = card.dataset.code;
-            roomInput.focus();
+            saveUsername();
+            window.location.href = `/game/${card.dataset.code}`;
           });
         });
       } catch {

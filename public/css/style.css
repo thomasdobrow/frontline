@@ -356,6 +356,19 @@ body {
 
 .cell.move-target:hover::after { background: rgba(200, 168, 75, 0.7); }
 
+/* ── Enemy unit threat range (hover) ── */
+.cell.enemy-move-target::before {
+  content: '';
+  position: absolute;
+  width: 20%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(210, 55, 55, 0.35);
+  pointer-events: none;
+  z-index: 0;
+}
+.cell.enemy-move-target:hover::before { background: rgba(210, 55, 55, 0.6); }
+
 /* ── Unit markers ── */
 .unit-marker {
   border-radius: 50%;

@@ -198,6 +198,22 @@ function renderBoard() {
 
         const isMyUnit = unit.player === myPlayer && isMyTurn();
 
+        // ── Enemy unit: show threat range on hover ──────────
+        if (unit.player !== myPlayer) {
+          cell.addEventListener('mouseenter', () => {
+            const enemyTargets = validMoveTargets(unitId, boardState, boardState.turn);
+            enemyTargets.forEach(coord => {
+              const [r, c] = coord.split(',');
+              boardEl.querySelector(`[data-row="${r}"][data-col="${c}"]`)
+                     ?.classList.add('enemy-move-target');
+            });
+          });
+          cell.addEventListener('mouseleave', () => {
+            boardEl.querySelectorAll('.enemy-move-target')
+                   .forEach(c => c.classList.remove('enemy-move-target'));
+          });
+        }
+
         if (hasMoved(unitId) && isMyUnit) {
           cell.addEventListener('dblclick', (e) => {
             e.stopPropagation();
