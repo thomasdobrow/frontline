@@ -99,8 +99,10 @@ logger.info(
 // ── Water tile generation ──────────────────────────────────────────────────
 //
 // Picks 2–4 symmetric pairs of water tiles (4–8 total).
-// A "pair" is (r, c) and its mirror (c, r) — equal count on each side of
-// the main diagonal.  Forbidden: rim cells, mountains, starting positions.
+// Symmetry axis: the positive-slope (anti-)diagonal, r + c = BOARD_SIZE-1.
+// A "pair" is (r, c) and its anti-diagonal mirror (BOARD_SIZE-1-c, BOARD_SIZE-1-r).
+// Candidates are drawn from the r+c < BOARD_SIZE-1 half only.
+// Forbidden: rim cells, mountains, starting positions.
 
 const MOUNTAIN_COORDS = [[3,3],[3,7],[7,3],[7,7]];
 
@@ -118,11 +120,15 @@ const FORBIDDEN_WATER = new Set([
 ]);
 
 function generateWaterTiles() {
-  // Collect upper-triangle candidates (r < c) where neither (r,c) nor (c,r) is forbidden
+  // Anti-diagonal mirror: (r,c) ↔ (BOARD_SIZE-1-c, BOARD_SIZE-1-r)
+  // Iterate non-rim cells on the r+c < BOARD_SIZE-1 side of the anti-diagonal
   const candidates = [];
   for (let r = 1; r < BOARD_SIZE - 1; r++) {
-    for (let c = r + 1; c < BOARD_SIZE - 1; c++) {
-      if (!FORBIDDEN_WATER.has(`${r},${c}`) && !FORBIDDEN_WATER.has(`${c},${r}`)) {
+    for (let c = 1; c < BOARD_SIZE - 1; c++) {
+      if (r + c >= BOARD_SIZE - 1) continue; // only one side of the anti-diagonal
+      const mr = BOARD_SIZE - 1 - c;
+      const mc = BOARD_SIZE - 1 - r;
+      if (!FORBIDDEN_WATER.has(`${r},${c}`) && !FORBIDDEN_WATER.has(`${mr},${mc}`)) {
         candidates.push([r, c]);
       }
     }
@@ -136,7 +142,7 @@ function generateWaterTiles() {
   const pairCount = 2 + Math.floor(Math.random() * 3);
   return candidates.slice(0, pairCount).flatMap(([r, c]) => [
     { row: r, col: c },
-    { row: c, col: r },
+    { row: BOARD_SIZE - 1 - c, col: BOARD_SIZE - 1 - r },
   ]);
 }
 
