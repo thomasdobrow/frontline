@@ -802,7 +802,7 @@ body {
     transparent 3px,
     transparent 9px
   );
-  border-color: #5a5030;
+  border-color: #6a5828;
 }
 .cell.mountain:hover {
   background-color: #332f24; /* only override color; background-image stays */
@@ -815,7 +815,7 @@ body {
   bottom: 2px;
   right: 3px;
   font-size: 9px;
-  color: rgba(160, 140, 80, 0.55);
+  color: rgba(190, 160, 75, 0.80);
   pointer-events: none;
   line-height: 1;
   z-index: 1;
@@ -855,19 +855,19 @@ body {
 
 /* ── Water tiles ─────────────────────────────────────────── */
 .cell.water {
-  background-color: #1a3a5c;
+  background-color: #0c2e30;
   background-image: repeating-linear-gradient(
     120deg,
-    rgba(100, 180, 255, 0.10) 0px,
-    rgba(100, 180, 255, 0.10) 2px,
+    rgba(0, 190, 180, 0.13) 0px,
+    rgba(0, 190, 180, 0.13) 2px,
     transparent 2px,
     transparent 9px
   );
-  border-color: #1e4a7a;
+  border-color: #0f4245;
   cursor: default;
 }
 .cell.water:hover {
-  background-color: #1a3a5c; /* no interactive hover — water is impassable */
+  background-color: #0c2e30; /* no interactive hover — water is impassable */
 }
 
 /* Small ~ icon in the corner to mirror the mountain ▲ icon */
@@ -877,7 +877,7 @@ body {
   bottom: 1px;
   right: 3px;
   font-size: 10px;
-  color: rgba(100, 180, 255, 0.50);
+  color: rgba(0, 190, 180, 0.60);
   pointer-events: none;
   line-height: 1;
   z-index: 1;

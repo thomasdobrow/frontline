@@ -98,13 +98,29 @@ logger.info(
 
 // ── Water tile generation ──────────────────────────────────────────────────
 //
-// Picks 2–4 symmetric pairs of water tiles (4–8 total).
-// Symmetry axis: the positive-slope (anti-)diagonal, r + c = BOARD_SIZE-1.
-// A "pair" is (r, c) and its anti-diagonal mirror (BOARD_SIZE-1-c, BOARD_SIZE-1-r).
-// Candidates are drawn from the r+c < BOARD_SIZE-1 half only.
-// Forbidden: rim cells, mountains, starting positions.
+// Picks N tiles per side of the positive-slope (anti-)diagonal (r+c = BOARD_SIZE-1),
+// where N = 3, 4, or 5 → 6, 8, or 10 total.  Each side is chosen independently
+// (not mirrored), so the layouts differ but the counts match.
+// Uses adjacency-biased weighted sampling so tiles nudge toward clustering.
+// Forbidden: rim, mountains, initial territory of both players.
 
 const MOUNTAIN_COORDS = [[3,3],[3,7],[7,3],[7,7]];
+
+// Territory ranges per unit type (mirrors UNIT_CONFIG in state.js)
+const UNIT_RANGES = { large: 3, medium: 2, small: 1, tower: 2 };
+
+// All cells within each starting unit's territory projection — excludes them from water
+const START_TERRITORY_KEYS = new Set(
+  STARTING_UNITS.flatMap(({ type, row: ur, col: uc }) => {
+    const range = UNIT_RANGES[type];
+    const cells = [];
+    for (let r = 0; r < BOARD_SIZE; r++)
+      for (let c = 0; c < BOARD_SIZE; c++)
+        if (Math.abs(r - ur) + Math.abs(c - uc) <= range)
+          cells.push(`${r},${c}`);
+    return cells;
+  })
+);
 
 const FORBIDDEN_WATER = new Set([
   // Rim: row 0, row BOARD_SIZE-1, col 0, col BOARD_SIZE-1
@@ -113,37 +129,45 @@ const FORBIDDEN_WATER = new Set([
   ).flat(),
   // Mountains
   ...MOUNTAIN_COORDS.map(([r,c]) => `${r},${c}`),
-  // P1 starting positions
-  ...P1_START.map(({ row, col }) => `${row},${col}`),
-  // P2 starting positions (180° rotation)
-  ...P1_START.map(({ row, col }) => `${BOARD_SIZE-1-row},${BOARD_SIZE-1-col}`),
+  // Initial territory of both players (starting positions subsumed)
+  ...START_TERRITORY_KEYS,
 ]);
 
+// Weighted pick: cells adjacent to already-picked tiles get 2× base weight.
+function pickWithAdjacencyBias(pool, count) {
+  const ADJACENCY_BONUS = 2;
+  const remaining = [...pool];
+  const picked = [];
+  for (let i = 0; i < count && remaining.length > 0; i++) {
+    const weights = remaining.map(([r, c]) =>
+      picked.some(([pr, pc]) => Math.abs(r - pr) + Math.abs(c - pc) === 1)
+        ? ADJACENCY_BONUS : 1
+    );
+    const total = weights.reduce((a, b) => a + b, 0);
+    let rand = Math.random() * total;
+    let idx = 0;
+    for (; idx < weights.length - 1; idx++) { rand -= weights[idx]; if (rand <= 0) break; }
+    picked.push(remaining.splice(idx, 1)[0]);
+  }
+  return picked;
+}
+
 function generateWaterTiles() {
-  // Anti-diagonal mirror: (r,c) ↔ (BOARD_SIZE-1-c, BOARD_SIZE-1-r)
-  // Iterate non-rim cells on the r+c < BOARD_SIZE-1 side of the anti-diagonal
-  const candidates = [];
+  // Separate non-forbidden interior cells by anti-diagonal side
+  const above = [], below = [];
   for (let r = 1; r < BOARD_SIZE - 1; r++) {
     for (let c = 1; c < BOARD_SIZE - 1; c++) {
-      if (r + c >= BOARD_SIZE - 1) continue; // only one side of the anti-diagonal
-      const mr = BOARD_SIZE - 1 - c;
-      const mc = BOARD_SIZE - 1 - r;
-      if (!FORBIDDEN_WATER.has(`${r},${c}`) && !FORBIDDEN_WATER.has(`${mr},${mc}`)) {
-        candidates.push([r, c]);
-      }
+      if (FORBIDDEN_WATER.has(`${r},${c}`)) continue;
+      const sum = r + c;
+      if      (sum < BOARD_SIZE - 1) above.push([r, c]);
+      else if (sum > BOARD_SIZE - 1) below.push([r, c]);
     }
   }
-  // Fisher-Yates shuffle
-  for (let i = candidates.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-  }
-  // Pick 2–4 pairs → 4–8 tiles
-  const pairCount = 2 + Math.floor(Math.random() * 3);
-  return candidates.slice(0, pairCount).flatMap(([r, c]) => [
-    { row: r, col: c },
-    { row: BOARD_SIZE - 1 - c, col: BOARD_SIZE - 1 - r },
-  ]);
+  const N = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5 per side → 6, 8, or 10 total
+  return [
+    ...pickWithAdjacencyBias(above, N),
+    ...pickWithAdjacencyBias(below, N),
+  ].map(([r, c]) => ({ row: r, col: c }));
 }
 
 function createRoom() {
